@@ -512,17 +512,14 @@ export class Visual implements IVisual {
         while (true) {
             for (let key of datafinal["keys"]()) {
                 fntest([0, 1], datafinal[key], key, tbody)
-                if (columns.length > 2) {
-                    let totalRow = tbody.append("tr")
-                    totalRow.append("td").attr("colspan", columns.length > 2 ? columns.length - 2 : 1).text("Totale per " + key).attr("class", "cell total")
-                    let totale = []
-                    debugger;
-                    for (let year of allyears) {
-                        totale.push(datafinal[key].keys().map(k => datafinal[key][k][year] ?? 0).reduce((a, b) => a + b, 0))
-                    }
-                    for (let t of totale) {
-                        totalRow.append("td").text(t).attr("class", "cell value total")
-                    }
+                let totalRow = tbody.append("tr")
+                totalRow.append("td").attr("colspan", columns.length - 2).text("Totale per " + key).attr("class","cell total")
+                let totale = []
+                for (let year of allyears) {
+                    totale.push(datafinal[key].keys().map(k => datafinal[key][k][year] ?? 0).reduce((a, b) => a + b, 0))
+                }
+                for (let t of totale) {
+                    totalRow.append("td").text(t).attr("class","cell value total")
                 }
             }
             break;
