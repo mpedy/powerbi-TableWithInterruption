@@ -1,0 +1,32 @@
+@font-face {
+    font-family: 'Fira Sans';
+    src: url("./fonts/Fira_Sans-Roboto_Slab/Fira_Sans/FiraSans-Regular.ttf") format("truetype");
+    font-weight: normal;
+    font-style: normal;
+}
+.custom-font {
+    font-family: 'Fira Sans', sans-serif;
+}
+.cell{
+    font-family: 'Fira Sans', sans-serif;
+    font-size: 16px;
+    border: 1px solid black;
+}
+.cell[rowspan]{
+    vertical-align: baseline;
+}
+.cell[colspan]{
+    text-align: right;
+    padding-right: 6px;
+}
+.cell.total{
+    font-weight: bold;
+}
+.cell.value{
+    border: 1px solid gray;
+    padding-left: 6px;
+}
+.cell.value.total{
+    padding-top: 6px;
+    padding-bottom: 6px;
+}

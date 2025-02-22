@@ -96,35 +96,34 @@ export class Visual implements IVisual {
         console.log("Visual build options", options)
         console.log("Salvato", this.options)
         this.root = d3.select(options.element);
-        let style = document.createElement("style");
-        style.type = "text/css";
-        style.innerHTML = `
-            @font-face {
-                font-family: 'Fira Sans';
-                src: url('./style/fonts/Fira_Sans/FiraSans-Regular.ttf') format('truetype');
-                font-weight: normal;
-                font-style: normal;
-            }
-            .custom-font {
-                font-family: 'Fira Sans', sans-serif;
-            }
-        `;
-        this.root.append("style").text(`
-            @font-face {
-                font-family: 'Fira Sans';
-                src: url('./style/fonts/Fira_Sans/FiraSans-Regular.ttf') format('truetype');
-                font-weight: normal;
-                font-style: normal;
-            }
-            .custom-font {
-                font-family: 'Fira Sans', sans-serif;
-            }
-        `);
+        this.insertStyle()
         this.buttonContainer = this.root.append("div");
         this.svg = d3.select(options.element).append('svg');
         this.selectionManager = this.host.createSelectionManager();
         this.handleContextMenu();
         //this.tooltipServiceWrapper = createTooltipServiceWrapper(this.host.tooltipService, options.element);
+    }
+
+    public insertStyle() {
+        /*this.root.append("style").text(`
+            @font-face {
+                font-family: 'Fira Sans';
+                src: url('./style/fonts/Fira_Sans/FiraSans-Regular.ttf') format('truetype');
+                font-weight: normal;
+                font-style: normal;
+            }
+            .custom-font {
+                font-family: 'Fira Sans', sans-serif;
+            }
+            .cell{
+                font-family: 'Fira Sans', sans-serif;
+                font-size: 16px;
+                border: 1px solid black;
+            }
+            .cell.total{
+                font-weight: bold;
+            }
+        `);*/
     }
 
     public createTextbox() {
@@ -153,95 +152,6 @@ export class Visual implements IVisual {
             .style("display", "flex")
             .style("flex-direction", "column")
             .html(`<span style="text-align: center"><h1 style="margin: 10px 0px;">${this.questionariBianchi}</h1>Questionari bianchi</span>`)
-    }
-
-    private createButtons() {
-        const min_dist = 5;
-        this.buttonContainer.selectAll("*").remove();
-        let div = this.buttonContainer
-            .append("div")
-            .style("margin-left", "40px")
-        this.btn_all = div
-            .append("button")
-            .attr("clicked", this.filter_all)
-            .attr("id", "btn_tutti")
-            .text("Tutto")
-            .style("position", "relative")
-            .style("padding", "4px 10px")
-            //.style("left","40px")
-            .on("click", event => {
-                var elem = document.getElementById("btn_tutti");
-                if (elem.getAttribute("clicked") == "false") {
-                    elem.setAttribute("clicked", "true")
-                    console.log("Solo filter_all a true")
-                    this.filter_all = true
-                    this.filter_cds = false
-                    this.filter_dip = false
-                } else {
-                    elem.setAttribute("clicked", "false")
-                    this.filter_all = false
-                    console.log("Solo filter_all a false")
-                }
-                this.update(this.options)
-            })
-        let offsets_all = document.getElementById("btn_tutti").getClientRects()[0];
-        this.btn_solo_cds = div
-            .append("button")
-            .attr("clicked", this.filter_cds)
-            .attr("id", "btn_solo_cds")
-            .text("Filtro privacy su CDS")
-            .style("position", "relative")
-            .style("padding", "4px 10px")
-            .style("left", min_dist + "px")
-            .on("click", event => {
-                var elem = document.getElementById("btn_solo_cds");
-                if (elem.getAttribute("clicked") == "false") {
-                    elem.setAttribute("clicked", "true")
-                    console.log("solo filter_cds a true")
-                    this.filter_all = false
-                    this.filter_cds = true
-                    this.filter_dip = false
-                } else {
-                    elem.setAttribute("clicked", "false")
-                    this.filter_cds = false
-                    console.log("solo filter_cds a false")
-                }
-                this.update(this.options)
-            })
-        let offsets_cds = document.getElementById("btn_solo_cds").getClientRects()[0];
-        this.btn_solo_dip = div
-            .append("button")
-            .attr("clicked", this.filter_dip)
-            .attr("id", "btn_solo_dip")
-            .text("Filtro privacy su DIP")
-            .style("background-color", this.filter_dip ? "darkgray" : "")
-            .style("position", "relative")
-            .style("padding", "4px 10px")
-            .style("left", min_dist * 2 + "px")
-            .on("click", event => {
-                var elem = document.getElementById("btn_solo_dip");
-                if (elem.getAttribute("clicked") == "false") {
-                    elem.setAttribute("clicked", "true")
-                    console.log("solo filter_dip a true")
-                    this.filter_all = false
-                    this.filter_cds = false
-                    this.filter_dip = true
-                } else {
-                    elem.setAttribute("clicked", "false")
-                    this.filter_dip = false
-                    console.log("solo filter_dip a false")
-                }
-                this.update(this.options)
-            })
-        if (this.filter_all) {
-            this.btn_all.style("background-color", "#199BFC").style("color", "white").style("font-weight", "bold")
-        }
-        if (this.filter_cds) {
-            this.btn_solo_cds.style("background-color", "#199BFC").style("color", "white").style("font-weight", "bold")
-        }
-        if (this.filter_dip) {
-            this.btn_solo_dip.style("background-color", "#199BFC").style("color", "white").style("font-weight", "bold")
-        }
     }
 
     private handleContextMenu() {
@@ -480,6 +390,7 @@ export class Visual implements IVisual {
 
         // Creazione della tabella
         this.root.selectAll("*").remove();
+        this.insertStyle()
         let div = this.root.append("div")
         div.style("height", "100%").style("overflow", "scroll")
         let table = div.append("table")
@@ -508,7 +419,7 @@ export class Visual implements IVisual {
         }
         data.sort((a, b) => {
             for (let i = 1; i < columns.length; i++) {
-                let result = a[columns[1].source.displayName].localeCompare(b[columns[1].source.displayName]);
+                let result = a[columns[i].source.displayName].localeCompare(b[columns[i].source.displayName]);
                 if (result != 0) return result
             }
             let y1 = parseInt(a[columns[0].source.displayName].split("/")[0]);
@@ -539,8 +450,7 @@ export class Visual implements IVisual {
         console.log(data)
         console.log(newdata)
         console.log(datafinal)
-        debugger;
-        let allyears = (columns[0].values.filter((a, index, arr) => arr.indexOf(a) == index) as string[])
+        var allyears = (columns[0].values.filter((a, index, arr) => arr.indexOf(a) == index) as string[])
         allyears.sort((a, b) => {
             let y1 = parseInt(a.split("/")[0]);
             let y2 = parseInt(b.split("/")[0]);
@@ -551,9 +461,56 @@ export class Visual implements IVisual {
         }
         console.log("VALUES: ", values[0].source.displayName)
 
+        var fntest = function (row, key, htmlElem, deep = 0) {
+            //debugger;
+            var inserted = false
+            for (let k1 of row.keys()) {
+                if (deep == 0) {
+                    var tr = htmlElem.append("tr")
+                    if (!inserted) {
+                        try {
+                            tr.append("td").text(key).attr("rowspan", row.keys().length + 1).attr("class", "cell")
+                        } catch (error) {
+                            console.log("Errore: ", error)
+                        }
+                    }
+                    inserted = true
+                }
+                if (deep + 1 == columns.length - 1) {
+                    //debugger;
+                    for (let k2 of allyears)
+                        htmlElem.append("td").text(row[k2] ?? " ").attr("class", "cell value")
+                    return
+                }
+                tr.append("td").text(k1).attr("class", "cell")
+                fntest(row[k1], k1, tr, deep + 1)
+            }
+
+            //Valori degli anni
+            /*row = row[row.keys()[0]]
+            for(let k2 of allyears)
+                htmlElem.append("td").text(row[k2]??" ")
+            */
+        }
+
         // Creazione del corpo della tabella
         let tbody = table.append("tbody");
-        for (let i = 0; i < data.length; i++) {
+        while (true) {
+            for (let key of datafinal["keys"]()) {
+                fntest(datafinal[key], key, tbody)
+                let totalRow = tbody.append("tr")
+                totalRow.append("td").attr("colspan", columns.length - 2).text("Totale per " + key).attr("class","cell total")
+                let totale = []
+                for (let year of allyears) {
+                    totale.push(datafinal[key].keys().map(k => datafinal[key][k][year] ?? 0).reduce((a, b) => a + b, 0))
+                }
+                for (let t of totale) {
+                    totalRow.append("td").text(t).attr("class","cell value total")
+                }
+            }
+            break;
+        }
+        /*for (let i = 0; i < data.length; i++) {
             let tr = tbody.append("tr")
             var names = []
             var previous = {}
@@ -578,11 +535,7 @@ export class Visual implements IVisual {
                 valueOfColumn = Object.keys(valueOfColumn).length > 0 ? valueOfColumn[values[0].source.displayName] : " "
                 tr.append("td").text(valueOfColumn).style("text-align", "center").style("border", "1px solid black")
             }
-        }
-
-        table.selectAll("tbody>tr>td:first-child").each(td => {
-
-        })
+        }*/
 
         // Disegna il boxplot per ciascuna area delle domande
         const activeSelections = this.selectionManager.getSelectionIds();
