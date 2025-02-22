@@ -1,0 +1,155 @@
+{
+    "privileges": [],
+    "dataRoles": [
+        {
+            "displayName": "Category",
+            "name": "category",
+            "kind": "Grouping"
+        },
+        {
+            "displayName": "Y Axis",
+            "name": "measure",
+            "kind": "Measure"
+        }
+    ],
+    "supportsHighlight": true,
+    "objects": {
+        "stile": {
+            "properties": {
+                "Box size": {
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "Outliers radius": {
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "Logo size": {
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "View logo": {
+                    "type": {
+                        "bool": true
+                    }
+                },
+                "Number of threshold lines": {
+                    "type": {
+                        "numeric": true
+                    }
+                }
+            }
+        },
+        "colorSelector": {
+            "properties": {
+                "fill": {
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "lineOptions": {
+            "displayName": "Line Options",
+            "properties": {
+                "lineColor1": {
+                    "displayName": "Line Color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "lineValue1": {
+                    "displayName": "Line Value",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "lineColor2": {
+                    "displayName": "Line Color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "lineValue2": {
+                    "displayName": "Line Value",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "lineColor3": {
+                    "displayName": "Line Color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "lineValue3": {
+                    "displayName": "Line Value",
+                    "type": {
+                        "numeric": true
+                    }
+                },
+                "lineColor4": {
+                    "displayName": "Line Color",
+                    "type": {
+                        "fill": {
+                            "solid": {
+                                "color": true
+                            }
+                        }
+                    }
+                },
+                "lineValue4": {
+                    "displayName": "Line Value",
+                    "type": {
+                        "numeric": true
+                    }
+                }
+            }
+        }
+    },
+    "dataViewMappings": [
+        {
+            "categorical": {
+                "categories": {
+                    "for": {
+                        "in": "category"
+                    }
+                },
+                "values": {
+                    "select": [
+                        {
+                            "bind": {
+                                "to": "measure"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "tooltips": {
+        "supportedTypes": {
+            "default": true,
+            "canvas": true
+        }
+    }
+}

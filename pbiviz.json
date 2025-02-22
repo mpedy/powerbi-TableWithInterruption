@@ -1,0 +1,26 @@
+{
+    "visual": {
+        "name": "tableWithInterruptions",
+        "displayName": "tableWithInterruptions",
+        "guid": "tableWithInterruptions541DC33D1A844DEDB11EBDB1C406477F",
+        "visualClassName": "Visual",
+        "version": "1.0.0.5",
+        "description": "Boxplot per l'analisi dei QVD",
+        "supportUrl": "https://github.com/mpedy/powerbi-tableWithInterruptions",
+        "gitHubUrl": "https://github.com/mpedy/powerbi-tableWithInterruptions"
+    },
+    "apiVersion": "5.3.0",
+    "author": {
+        "name": "Matteo Provendola",
+        "email": "matteo.provendola@unige.it"
+    },
+    "assets": {
+        "icon": "assets/icon.png"
+    },
+    "externalJS": null,
+    "style": "style/visual.less",
+    "capabilities": "capabilities.json",
+    "dependencies": null,
+    "stringResources": [],
+    "version": "1.0.0.0"
+}

@@ -1,0 +1,33 @@
+p {
+    font-size: 20px;
+    font-weight: bold;
+    em {
+        background: yellow;
+        padding: 5px;
+        
+    }
+}
+
+@font-face {
+    font-family: 'Fira Sans';
+    src: url('./fonts/Fira_Sans-Roboto_Slab/Fira_Sans/FiraSans-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Roboto Slab';
+    src: url('./fonts/Fira_Sans-Roboto_Slab/Roboto_Slab/static/RobotoSlab-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+button {
+    font-family: 'Roboto Slab' !important;
+    font-size: 18px !important;
+    background-color: "#D9D9D6";
+    border-radius: 6px;
+}
+button[clicked='true']{
+    border: 2px solid black;
+}
