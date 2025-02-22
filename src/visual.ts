@@ -460,30 +460,40 @@ export class Visual implements IVisual {
             thead.append("th").text(k).style("border", "1px solid black").style("background", "#ddd");
         }
         console.log("VALUES: ", values[0].source.displayName)
-
-        var fntest = function (row, key, htmlElem, deep = 0) {
-            //debugger;
+        var fntest = function (subtotal_displayed, row, key, htmlElem, deep = 0) {
             var inserted = false
-            for (let k1 of row.keys()) {
-                if (deep == 0) {
+            for (let k1index = 0; k1index < row.keys().length; k1index++) {
+                let k1 = row.keys()[k1index];
+                if (k1index > 0) {
+                    tr = htmlElem.select(function () { this.parentNode })
+                }
+                if (deep in subtotal_displayed) {
                     var tr = htmlElem.append("tr")
                     if (!inserted) {
                         try {
-                            tr.append("td").text(key).attr("rowspan", row.keys().length + 1).attr("class", "cell")
+                            if (columns.length <= 2) {
+                                tr.append("td").text(key).attr("class", "cell")
+                            } else {
+                                tr.append("td").text(key).attr("rowspan", row.keys().length + 1).attr("class", "cell")
+                            }
+                            deep += 1;
                         } catch (error) {
                             console.log("Errore: ", error)
                         }
                     }
                     inserted = true
                 }
-                if (deep + 1 == columns.length - 1) {
+                if (deep == columns.length - 1) {
                     //debugger;
-                    for (let k2 of allyears)
-                        htmlElem.append("td").text(row[k2] ?? " ").attr("class", "cell value")
+                    for (let k2 of allyears){
+                        (columns.length<=2 ? tr : htmlElem).append("td").text(row[k2] ?? " ").attr("class", "cell value")
+                    }
                     return
                 }
-                tr.append("td").text(k1).attr("class", "cell")
-                fntest(row[k1], k1, tr, deep + 1)
+                if (columns.length > 2) {
+                    (tr ?? htmlElem).append("td").text(k1).attr("class", "cell")
+                }
+                fntest(subtotal_displayed, row[k1], k1, tr ?? htmlElem, deep + 1)
             }
 
             //Valori degli anni
@@ -494,18 +504,25 @@ export class Visual implements IVisual {
         }
 
         // Creazione del corpo della tabella
-        let tbody = table.append("tbody");
+        try {
+            var tbody = table.append("tbody");
+        } catch (error) {
+            console.log("ERRORE: ", error)
+        }
         while (true) {
             for (let key of datafinal["keys"]()) {
-                fntest(datafinal[key], key, tbody)
-                let totalRow = tbody.append("tr")
-                totalRow.append("td").attr("colspan", columns.length - 2).text("Totale per " + key).attr("class","cell total")
-                let totale = []
-                for (let year of allyears) {
-                    totale.push(datafinal[key].keys().map(k => datafinal[key][k][year] ?? 0).reduce((a, b) => a + b, 0))
-                }
-                for (let t of totale) {
-                    totalRow.append("td").text(t).attr("class","cell value total")
+                fntest([0, 1], datafinal[key], key, tbody)
+                if (columns.length > 2) {
+                    let totalRow = tbody.append("tr")
+                    totalRow.append("td").attr("colspan", columns.length > 2 ? columns.length - 2 : 1).text("Totale per " + key).attr("class", "cell total")
+                    let totale = []
+                    debugger;
+                    for (let year of allyears) {
+                        totale.push(datafinal[key].keys().map(k => datafinal[key][k][year] ?? 0).reduce((a, b) => a + b, 0))
+                    }
+                    for (let t of totale) {
+                        totalRow.append("td").text(t).attr("class", "cell value total")
+                    }
                 }
             }
             break;
