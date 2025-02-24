@@ -34,7 +34,6 @@ import VisualUpdateOptions = powerbi.extensibility.visual.VisualUpdateOptions;
 import IVisual = powerbi.extensibility.visual.IVisual;
 import FormattingModel = powerbi.visuals.FormattingModel;
 import ISelectionManager = powerbi.extensibility.ISelectionManager;
-import { BoxPlotData, calculateBoxPlotData, percentile } from "./boxplotdata"
 import DataView = powerbi.DataView;
 import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 import * as d3 from "d3";
@@ -43,7 +42,8 @@ import { dataViewObjects } from "powerbi-visuals-utils-dataviewutils";
 import DataViewObjectPropertyIdentifier = powerbi.DataViewObjectPropertyIdentifier;
 import Fill = powerbi.Fill;
 import { ThresholdLines } from "./thresholdLines";
-import { tableData } from "./tableData";
+import { myMaxDeep } from "./Utils";
+
 
 type Selection<T extends d3.BaseType> = d3.Selection<T, any, any, any>;
 
@@ -56,39 +56,9 @@ export class Visual implements IVisual {
     private margin = { top: 30, right: 100, bottom: 50 + 120, left: 30, xAxistop: 15 };
     private options: VisualUpdateOptions;
     private selectionManager: ISelectionManager;
-    //private tooltipServiceWrapper: ITooltipServiceWrapper;
-    private boxPlotData: BoxPlotData[] = [];
-    private boxPlotData_dip: BoxPlotData[] = [];
-    private boxPlotData_cds: BoxPlotData[] = [];
-    private questionariBianchi: number = 0;
-    private questionariCompilati: number = 0;
-    private colors = {
-        "CONOSCENZE": "#008fd3",
-        "CARICO DI STUDIO": "#99d101",
-        "MATERIALE DIDATTICO": "#f39b02",
-        "MOD ESAME": "#9fcfec",
-        "SODDISFAZIONE": "#4ba707",
-        "ORARI": "#f6d133",
-        "DOC STIMOLA": "#cb4d2c",
-        "DOC ESPONE": "#cac7ba",
-        "ATT. INTEGRATIVE": "#0d869c",
-        "COERENZA": "#cdd72e",
-        "DOC REPERIBILE": "#247230",
-        "INTERESSE": "#6cdedc"
-    }
-    private asseX: d3.ScaleBand<string>;
-    private asseY: d3.ScaleLinear<number, number, never>;
     private visualSettings: VisualSettings;
     private formattingSettingsService: FormattingSettingsService;
     private thresholdLines: ThresholdLines[] = [];
-    private buttonContainer: d3.Selection<HTMLDivElement, any, any, any>;
-    private btn_solo_cds: d3.Selection<HTMLButtonElement, any, any, any>;
-    private btn_solo_dip: d3.Selection<HTMLButtonElement, any, any, any>;
-    private btn_all: d3.Selection<HTMLButtonElement, any, any, any>;
-    private filter_all: boolean = true;
-    private filter_dip: boolean = false;
-    private filter_cds: boolean = false;
-    private numberOfIns: number = 0;
 
     constructor(options: VisualConstructorOptions) {
         this.host = options.host;
@@ -96,62 +66,10 @@ export class Visual implements IVisual {
         console.log("Visual build options", options)
         console.log("Salvato", this.options)
         this.root = d3.select(options.element);
-        this.insertStyle()
-        this.buttonContainer = this.root.append("div");
         this.svg = d3.select(options.element).append('svg');
         this.selectionManager = this.host.createSelectionManager();
         this.handleContextMenu();
         //this.tooltipServiceWrapper = createTooltipServiceWrapper(this.host.tooltipService, options.element);
-    }
-
-    public insertStyle() {
-        /*this.root.append("style").text(`
-            @font-face {
-                font-family: 'Fira Sans';
-                src: url('./style/fonts/Fira_Sans/FiraSans-Regular.ttf') format('truetype');
-                font-weight: normal;
-                font-style: normal;
-            }
-            .custom-font {
-                font-family: 'Fira Sans', sans-serif;
-            }
-            .cell{
-                font-family: 'Fira Sans', sans-serif;
-                font-size: 16px;
-                border: 1px solid black;
-            }
-            .cell.total{
-                font-weight: bold;
-            }
-        `);*/
-    }
-
-    public createTextbox() {
-        let div = this.buttonContainer
-            .append("div")
-            .style("display", "flex")
-            .style("flex-direction", "row")
-        div.append("div")
-            .style("flex-grow", 1)
-            .style("justify-content", "center")
-            .style("align-items", "center")
-            .style("display", "flex")
-            .style("flex-direction", "column")
-            .html(`<span style="text-align: center"><h1 style="margin: 10px 0px;">${this.numberOfIns}</h1>Numero insegnamenti valutati</span>`)
-        div.append("div")
-            .style("flex-grow", 1)
-            .style("justify-content", "center")
-            .style("align-items", "center")
-            .style("display", "flex")
-            .style("flex-direction", "column")
-            .html(`<span style="text-align: center"><h1 style="margin: 10px 0px;">${this.questionariCompilati}</h1>Questionari compilati</span>`)
-        div.append("div")
-            .style("flex-grow", 1)
-            .style("justify-content", "center")
-            .style("align-items", "center")
-            .style("display", "flex")
-            .style("flex-direction", "column")
-            .html(`<span style="text-align: center"><h1 style="margin: 10px 0px;">${this.questionariBianchi}</h1>Questionari bianchi</span>`)
     }
 
     private handleContextMenu() {
@@ -184,158 +102,6 @@ export class Visual implements IVisual {
         document.body.removeChild(span);
 
         return width;
-    }
-
-    public displayTooltip(event, d) {
-        var secondColumnWidth = d3.max([this.getTextWidth(d.area, undefined) + 5, 110]);
-        this.root.append("div")
-            .attr("id", "tooltip")
-            .style("background-color", "white")
-            .style("position", "absolute")
-            .style("border", "1px solid black")
-            .style("border-radius", "10px")
-            .style("top", event.clientY + 10 + "px")
-            .style("left", event.clientX + 20 + "px")
-            .append("div")
-            .style("display", "grid")
-            .style("grid-template-columns", `140px ${secondColumnWidth}px`)
-            .style("padding", "10px")
-            .html(`
-                <span style="text-align: end;margin-right: 8px;">AREA: </span><span>${d.area}</span>
-                <span style="text-align: end;margin-right: 8px;">Media: </span><span>${d.mean.toFixed(2) + " %"}</span>
-                <span style="text-align: end;margin-right: 8px;">Mediana: </span><span>${d.median.toFixed(2) + " %"}</span>
-                <span style="text-align: end;margin-right: 8px;">Q1: </span><span>${d.q1.toFixed(2) + " %"}</span>
-                <span style="text-align: end;margin-right: 8px;">Q3: </span><span>${d.q3.toFixed(2) + " %"}</span>
-                <span style="text-align: end;margin-right: 8px;">Lower Bound: </span><span>${d.lower_bound.toFixed(2) + " %"}</span>
-                <span style="text-align: end;margin-right: 8px;">Upper Bound: </span><span>${d.upper_bound.toFixed(2) + " %"}</span>
-                <span style="text-align: end;margin-right: 8px;">Outliers inferiori: </span><span>${d.outliers_inf.length}</span>
-                <span style="text-align: end;margin-right: 8px;">Outliers superiori: </span><span>${d.outliers_sup.length}</span>
-            `)
-        const tooltip = document.getElementById("tooltip")
-        const clientrects = tooltip.getClientRects()[0]
-        if (clientrects.x + clientrects.width > document.documentElement.getClientRects()[0].width) {
-            console.log("Siamo dentro")
-            this.root.select("#tooltip").style("left", event.clientX - 20 - clientrects.width + "px")
-        }
-    }
-
-    public getDataFromDataview(dataView: DataView) {
-        this.boxPlotData = [];
-        this.boxPlotData_dip = [];
-        this.boxPlotData_cds = [];
-        this.questionariBianchi = 0;
-        this.questionariCompilati = 0;
-        let flag_quest_bianchi = false, flag_quest_compilati = false;
-        const areas = dataView.categorical.categories[0].values
-        var indexArea = 0;
-        for (var indexArea = 0; indexArea < areas.length; indexArea++) {
-            const area = <string>areas[indexArea];
-            let color = this.getColorFromObject(area, dataView, indexArea);
-            const categorySelectionId = this.host.createSelectionIdBuilder()
-                .withCategory(dataView.categorical.categories[0], indexArea) // Una sola categoria ("Area Domanda")
-                .createSelectionId();
-            let datas = dataView.categorical.values.grouped();
-            if (datas.length > 1) {
-                if (datas[0].values.length > 1 && !flag_quest_bianchi) {
-                    this.questionariBianchi = <number>datas.map(data => data.values[1]).map(data => data.values[0])[0]
-                    flag_quest_bianchi = true
-                }
-                if (datas[0].values.length > 2 && !flag_quest_compilati) {
-                    this.questionariCompilati = <number>datas.map(data => data.values[2]).map(data => data.values[0])[0]
-                    flag_quest_compilati = true
-                }
-            }
-            let datas1 = dataView.categorical.values.filter(i => i.source.queryName.indexOf("giudizi positivi") >= 0)
-            const values_all = <number[]>datas1.map(child => <number>child.values[indexArea] * 100);
-            const data_all = calculateBoxPlotData(values_all, area, categorySelectionId, color);
-            this.boxPlotData.push(data_all);
-            const values_dip = <number[]>datas1.filter(child => (<string>child.source.groupName).split("_")[0] == "SI").map(child => <number>child.values[indexArea] * 100);
-            const data_dip = calculateBoxPlotData(values_dip, area, categorySelectionId, color);
-            this.boxPlotData_dip.push(data_dip)
-            const values_cds = <number[]>datas1.filter(child => (<string>child.source.groupName).split("_")[1] == "SI").map(child => <number>child.values[indexArea] * 100);
-            const data_cds = calculateBoxPlotData(values_cds, area, categorySelectionId, color);
-            this.boxPlotData_cds.push(data_cds)
-        }
-    }
-
-    public getColorFromObject(area: string, dataView: powerbi.DataView, indexArea: number) {
-        const defaultColor: Fill = {
-            solid: {
-                color: this.colors[area],
-            }
-        };
-        const prop: DataViewObjectPropertyIdentifier = {
-            objectName: "colorSelector",
-            propertyName: "fill"
-        };
-
-        let colorFromObjects: Fill;
-        if (dataView.categorical.categories[0].objects?.[indexArea]) {
-            colorFromObjects = dataViewObjects.getValue(dataView.categorical.categories[0]?.objects[indexArea], prop);
-        }
-
-        let color = colorFromObjects?.solid.color ?? defaultColor.solid.color;
-        return color;
-    }
-
-    public creaAssi(data: BoxPlotData[]) {
-        // Scala degli assi
-        this.asseX = d3.scaleBand()
-            .domain(data.map(d => d.area))
-            .range([0, this.width])
-            .padding(0.2);
-
-        this.asseY = d3.scaleLinear()
-            .domain([0, 100])
-            .nice()
-            .range([this.height, 0]);
-
-        // Crea l'elemento SVG
-        this.svg
-            .attr("width", this.width + this.margin.left + this.margin.right)
-            .attr("height", this.height + this.margin.top + this.margin.bottom)
-
-
-        /*let gtext = this.svg.append("g")
-            .attr("transform", `translate(${this.asseX.bandwidth() / 2},10)`)
-        gtext.append("text")
-            .text("NUMERO DI INSEGNAMENTI VALUTATI: " + this.numberOfIns.length)
-            .attr("dy", ".35em")
-            .style("font-size", "10")
-            .call(this.wrap, this.asseX.bandwidth() * 10)*/
-
-        let g = this.svg
-            .append("g")
-            .attr("id", "svg-container")
-            .attr("transform", `translate(${this.margin.left},${this.margin.top})`);
-
-        // Aggiungi asse X
-        g.append("g")
-            .attr("transform", `translate(0,${this.height + this.margin.xAxistop})`)
-            .call(d3.axisBottom(this.asseX))
-            .selectAll("line").remove();
-        g.selectAll("text") // Seleziona tutte le etichette dell'asse X
-            .style("text-anchor", "middle") // Centro il testo
-            .attr("dy", ".35em")// Allineamento verticale del testo
-            .call(this.wrap, this.asseX.bandwidth()); // Applica la funzione wrap per spezzare il testo
-
-        // Aggiungi asse Y
-        g.append("g")
-            .call(d3.axisLeft(this.asseY))
-            .selectAll("line").remove();
-        g.selectAll("path").remove();
-    }
-
-    public aggiungiThreshold(percentage, attribs) {
-        var line = this.root.select("#svg-container")
-            .append("line")
-            .attr("x1", 0)
-            .attr("x2", this.width)
-            .attr("y1", this.asseY(percentage))
-            .attr("y2", this.asseY(percentage))
-        for (var i of Object.keys(attribs)) {
-            line.attr(i, attribs[i])
-        }
     }
 
     public getFormattingModel(): FormattingModel {
@@ -390,7 +156,6 @@ export class Visual implements IVisual {
 
         // Creazione della tabella
         this.root.selectAll("*").remove();
-        this.insertStyle()
         let div = this.root.append("div")
         div.style("height", "100%").style("overflow", "scroll")
         let table = div.append("table")
@@ -424,7 +189,7 @@ export class Visual implements IVisual {
             }
             let y1 = parseInt(a[columns[0].source.displayName].split("/")[0]);
             let y2 = parseInt(b[columns[0].source.displayName].split("/")[0]);
-            return y1 - y2;
+            return y2 - y1;
             //return a[columns[columns.length - 1].source.displayName].localeCompare(b[columns[columns.length - 1].source.displayName]);
         })
         let newdata = data.reduce((acc, d) => {
@@ -454,13 +219,13 @@ export class Visual implements IVisual {
         allyears.sort((a, b) => {
             let y1 = parseInt(a.split("/")[0]);
             let y2 = parseInt(b.split("/")[0]);
-            if (y1 != y2) return y1 - y2;
+            if (y1 != y2) return y2 - y1;
         })
         for (let k of allyears) {
-            thead.append("th").text(k).style("border", "1px solid black").style("background", "#ddd");
+            thead.append("th").text(k).style("border", "1px solid black").style("background", "#ddd").style("padding", "0px 6px");
         }
         console.log("VALUES: ", values[0].source.displayName)
-        var fntest = function (subtotal_displayed, row, key, htmlElem, deep = 0) {
+        var fntest = function (subtotal_displayed, row, key, htmlElem, tbody, deep = 0) {
             var inserted = false
             for (let k1index = 0; k1index < row.keys().length; k1index++) {
                 let k1 = row.keys()[k1index];
@@ -485,15 +250,15 @@ export class Visual implements IVisual {
                 }
                 if (deep == columns.length - 1) {
                     //debugger;
-                    for (let k2 of allyears){
-                        (columns.length<=2 ? tr : htmlElem).append("td").text(row[k2] ?? " ").attr("class", "cell value")
+                    for (let k2 of allyears) {
+                        (columns.length <= 2 ? tr : htmlElem).append("td").text(row[k2] ?? " ").attr("class", "cell value")
                     }
                     return
                 }
                 if (columns.length > 2) {
                     (tr ?? htmlElem).append("td").text(k1).attr("class", "cell")
                 }
-                fntest(subtotal_displayed, row[k1], k1, tr ?? htmlElem, deep + 1)
+                fntest(subtotal_displayed, row[k1], k1, tr ?? htmlElem, tbody, deep + 1)
             }
 
             //Valori degli anni
@@ -501,6 +266,67 @@ export class Visual implements IVisual {
             for(let k2 of allyears)
                 htmlElem.append("td").text(row[k2]??" ")
             */
+        }
+
+        var maxRowSpan = 0
+        var fntest1 = function (subtotal_displayed, row, key, htmlElem, tbody, deep = 0, rowspan = []) {
+            var inserted = false
+            for (let k1index = 0; k1index < row.keys().length; k1index++) {
+                if (deep == 0) {
+                    rowspan = [];
+                }
+                let k1 = row.keys()[k1index];
+                if (k1index > 0 && deep in subtotal_displayed) {
+                    htmlElem = tbody.append("tr")
+                } else if (deep in subtotal_displayed) {
+                    htmlElem = htmlElem.append("tr")
+                }
+                if (deep == columns.length - 1) {
+                    //debugger;
+                    for (let k2 of allyears) {
+                        htmlElem.append("td").text(row[k2] ?? " ").attr("class", "cell value")
+                    }
+                    return
+                }
+                if (inserted) {
+                    //c'è già una riga precedente
+                    htmlElem = tbody.append("tr")
+                }
+                let prova = deep == columns.length - 2 ? 1 : myMaxDeep(row[k1], deep, columns.length - 2);
+                prova = prova > 0 ? (prova + (deep in subtotal_displayed ? 1 : 0)) : 1
+                console.log(k1, " -> ", prova, " --> ", maxRowSpan)
+                let td = htmlElem.append("td").text(k1).attr("class", "cell").attr("rowspan", prova)
+                if (deep == columns.length - 2) {
+                    rowspan.push({ deep: deep, value: k1 })
+                }
+                inserted = true
+                if (columns.length > 2 && deep in subtotal_displayed) {
+                    //td.attr("rowspan", row[k1].keys().length + 1)
+                } else {
+                    if (deep != columns.length - 2) {
+                        //td.attr("rowspan", row[k1].keys().length)
+                    }
+                }
+                maxRowSpan = row.keys().length;
+                fntest1(subtotal_displayed, row[k1], k1, htmlElem, tbody, deep + 1, rowspan)
+                debugger;
+                if (deep in subtotal_displayed) {
+                    htmlElem = tbody.append("tr")
+                    htmlElem.append("td").text("Totale per " + k1).attr("class", "cell total").attr("colspan", columns.length - 2 - deep)
+                    let totale = []
+                    for (let year of allyears) {
+                        //totale.push(datafinal[key].keys().map(k => datafinal[key][k][year] ?? 0).reduce((a, b) => a + b, 0))
+                        totale.push(data.map(a => a[columns[0].source.displayName] == year && a[columns[deep + 1].source.displayName] == k1 ? a[values[0].source.displayName] : 0).reduce((a, b) => a + b, 0))
+                    }
+                    for (let t of totale) {
+                        htmlElem.append("td").text(t).attr("class", "cell value total")
+                    }
+                    //let rowspanvalue = maxSubkeys(row)[k1]+1
+                    let rowspanvalue = rowspan.length + 1;
+                    //td.attr("rowspan", rowspanvalue)
+                    rowspan = []
+                }
+            }
         }
 
         // Creazione del corpo della tabella
@@ -511,16 +337,17 @@ export class Visual implements IVisual {
         }
         while (true) {
             for (let key of datafinal["keys"]()) {
-                fntest([0, 1], datafinal[key], key, tbody)
-                let totalRow = tbody.append("tr")
-                totalRow.append("td").attr("colspan", columns.length - 2).text("Totale per " + key).attr("class","cell total")
+                fntest1([0], datafinal, key, tbody, tbody)
+                /*let totalRow = tbody.append("tr")
+                totalRow.append("td").attr("colspan", columns.length - 2).text("Totale per " + key).attr("class", "cell total")
                 let totale = []
                 for (let year of allyears) {
-                    totale.push(datafinal[key].keys().map(k => datafinal[key][k][year] ?? 0).reduce((a, b) => a + b, 0))
+                    //totale.push(datafinal[key].keys().map(k => datafinal[key][k][year] ?? 0).reduce((a, b) => a + b, 0))
+                    totale.push(data.map(a => a[columns[0].source.displayName] == year && a[columns[1].source.displayName] == key ? a[values[0].source.displayName] : 0).reduce((a, b) => a + b, 0))
                 }
                 for (let t of totale) {
-                    totalRow.append("td").text(t).attr("class","cell value total")
-                }
+                    totalRow.append("td").text(t).attr("class", "cell value total")
+                }*/
             }
             break;
         }
