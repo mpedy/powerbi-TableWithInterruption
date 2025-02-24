@@ -21,10 +21,12 @@
 }
 .cell.total{
     font-weight: bold;
+    background-color: rgb(235,235,235);
 }
 .cell.value{
     border: 1px solid gray;
     padding-left: 6px;
+    text-align: center;
 }
 .cell.value.total{
     padding-top: 6px;
