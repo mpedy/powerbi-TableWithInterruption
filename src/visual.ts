@@ -54,6 +54,7 @@ export class Visual implements IVisual {
     private selectionManager: ISelectionManager;
     private visualSettings: VisualSettings;
     private formattingSettingsService: FormattingSettingsService;
+    private heightSVG: number;
 
     constructor(options: VisualConstructorOptions) {
         this.host = options.host;
@@ -111,10 +112,21 @@ export class Visual implements IVisual {
         let dataView: DataView = options.dataViews[0];
 
         // Creazione della tabella
+        this.heightSVG = 80;
         this.root.selectAll("*").remove();
-        let div = this.root.append("div")
-        div.style("height", "100%").style("overflow", "scroll")
-        let table = div.append("table")
+        if (this.visualSettings.stile.showLogo.value == true) {
+            this.svg = this.root.append("svg").style("width", "100%").style("height", this.heightSVG + "px").style("border-bottom","1px solid black").style("box-sizing","border-box")
+            this.svg
+                .append("image")
+                .attr("xlink:href", "data:image/png;base64," + image)
+                .attr("x", this.width - 70)  // Posizione X dell'immagine
+                .attr("y", 0)  // Posizione Y dell'immagine
+                //.attr("height", this.heightSVG)
+            //.attr("width",this.heightSVG*1.66)
+                .attr("width", this.visualSettings.stile.logoSize.value ? this.visualSettings.stile.logoSize.value : 300)  // Larghezza dell'immagine
+                .attr("height", this.visualSettings.stile.logoSize.value ? this.visualSettings.stile.logoSize.value / 4 : 75);  // Altezza dell'immagine
+        }
+        let table = this.root.append("div").style("height", this.visualSettings.stile.showLogo.value == true ? "calc(100% - "+this.heightSVG+"px)" : "100%").style("overflow", "scroll").append("table")
             .style("border-collapse", "collapse")
             .style("width", "100%")
 
@@ -128,7 +140,7 @@ export class Visual implements IVisual {
         }
         for (let i = 0; i < columns.length; i++) {
             if (i > 0) {
-                thead_tr.append("th").text(columns[i].source.displayName).attr("class","cell header")
+                thead_tr.append("th").text(columns[i].source.displayName).attr("class", "cell header")
             }
             data[0][columns[i].source.displayName] = columns[i].values[0];
         }
@@ -169,7 +181,7 @@ export class Visual implements IVisual {
             if (y1 != y2) return y2 - y1;
         })
         for (let k of allyears) {
-            thead_tr.append("th").text(k).attr("class","cell header years")
+            thead_tr.append("th").text(k).attr("class", "cell header years")
         }
         /**
          * 
@@ -180,24 +192,19 @@ export class Visual implements IVisual {
          * @param deep riferimento alla profondità ricorsiva a cui si è arrivati
          * @returns nulla
          */
+        var even_row = false
         var populateTable = function (subtotal_displayed, row, htmlElem, tbody, deep = 0) {
             if (deep == columns.length - 1) {
                 for (let k2 of allyears) {
-                    htmlElem.append("td").text(row[k2] ?? " ").attr("class", "cell value")
+                    htmlElem.append("td").text(row[k2] ?? " ").attr("class", "cell value "+ (even_row ? "even": "odd"))
                 }
                 return
             }
             var inserted = false
             for (let k1index = 0; k1index < row.keys().length; k1index++) {
-                /*if (k1index > 0) {
-                    let indexes = rowspan["keys"]().map(a => parseInt(a));
-                     for (let deep1 = deep + 1; deep1 <= Math.max(...indexes); deep1++) {
-                        delete rowspan[deep1];
-                    }
-                }*/
-                /* if (deep == 0) {
-                    rowspan = {};
-                } */
+                if(deep==0){
+                    even_row = !even_row;
+                }
                 let k1 = row.keys()[k1index];
                 if (k1index > 0 && deep in subtotal_displayed) {
                     htmlElem = tbody.append("tr")
@@ -209,20 +216,12 @@ export class Visual implements IVisual {
                 }
                 let prova = deep == columns.length - 2 ? 1 : myMaxDeep(row[k1], deep, columns.length - 2);
                 prova = prova > 0 ? (prova + (deep in subtotal_displayed ? 1 : 0)) : 1
-                let td = htmlElem.append("td").text(k1).attr("class", "cell").attr("rowspan", prova)
-                debugger;
+                let td = htmlElem.append("td").text(k1).attr("class", "cell " + (even_row ? "even": "odd")).attr("rowspan", prova).attr("deep",deep)
                 inserted = true
-                if (columns.length > 2 && deep in subtotal_displayed) {
-                    //td.attr("rowspan", row[k1].keys().length + 1)
-                } else {
-                    if (deep != columns.length - 2) {
-                        //td.attr("rowspan", row[k1].keys().length)
-                    }
-                }
                 populateTable(subtotal_displayed, row[k1], htmlElem, tbody, deep + 1)
                 if (deep in subtotal_displayed) {
                     htmlElem = tbody.append("tr")
-                    htmlElem.append("td").text("Totale per " + k1).attr("class", "cell total").attr("colspan", columns.length - 2 - deep)
+                    htmlElem.append("td").text("Totale laureati UniGe che continuano la carriera universitaria presso " + k1.toUpperCase()).attr("class", "cell total "+(even_row ? "even": "odd")).attr("colspan", columns.length - 2 - deep)
                     let totale = []
                     for (let year of allyears) {
                         totale.push(data.map(a => a[columns[0].source.displayName] == year && a[columns[deep + 1].source.displayName] == k1 ? a[values[0].source.displayName] : 0).reduce((a, b) => a + b, 0))
@@ -237,16 +236,6 @@ export class Visual implements IVisual {
         // Creazione del corpo della tabella
         var tbody = table.append("tbody");
         populateTable([0], datafinal, tbody, tbody)
-
-        if (this.visualSettings.stile.showLogo.value == true) {
-            this.svg
-                .append("image")
-                .attr("xlink:href", "data:image/png;base64," + image)
-                .attr("x", this.width - 70)  // Posizione X dell'immagine
-                .attr("y", 0)  // Posizione Y dell'immagine
-                .attr("width", this.visualSettings.stile.logoSize.value ? this.visualSettings.stile.logoSize.value : 300)  // Larghezza dell'immagine
-                .attr("height", this.visualSettings.stile.logoSize.value ? this.visualSettings.stile.logoSize.value / 4 : 75);  // Altezza dell'immagine
-        }
     }
 
     // Funzione per spezzare le etichette troppo lunghe
