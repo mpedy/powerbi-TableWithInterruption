@@ -7,6 +7,13 @@
 .custom-font {
     font-family: 'Fira Sans', sans-serif;
 }
+.cell.header{
+    border: 1px solid black;
+    background: #ddd 
+}
+.cell.header.years{
+    padding: 0px 10px;
+}
 .cell{
     font-family: 'Fira Sans', sans-serif;
     font-size: 16px;

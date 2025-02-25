@@ -38,10 +38,6 @@ import DataView = powerbi.DataView;
 import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 import * as d3 from "d3";
 import { image } from "./unige_image";
-import { dataViewObjects } from "powerbi-visuals-utils-dataviewutils";
-import DataViewObjectPropertyIdentifier = powerbi.DataViewObjectPropertyIdentifier;
-import Fill = powerbi.Fill;
-import { ThresholdLines } from "./thresholdLines";
 import { myMaxDeep } from "./Utils";
 
 
@@ -58,29 +54,13 @@ export class Visual implements IVisual {
     private selectionManager: ISelectionManager;
     private visualSettings: VisualSettings;
     private formattingSettingsService: FormattingSettingsService;
-    private thresholdLines: ThresholdLines[] = [];
 
     constructor(options: VisualConstructorOptions) {
         this.host = options.host;
         this.formattingSettingsService = new FormattingSettingsService();
-        console.log("Visual build options", options)
-        console.log("Salvato", this.options)
         this.root = d3.select(options.element);
         this.svg = d3.select(options.element).append('svg');
         this.selectionManager = this.host.createSelectionManager();
-        this.handleContextMenu();
-        //this.tooltipServiceWrapper = createTooltipServiceWrapper(this.host.tooltipService, options.element);
-    }
-
-    private handleContextMenu() {
-        this.svg.on('contextmenu', (event: PointerEvent, dataPoint) => {
-            console.log("ciao")
-            this.selectionManager.showContextMenu(dataPoint ? dataPoint : {}, {
-                x: event.clientX,
-                y: event.clientY
-            });
-            event.preventDefault();
-        });
     }
 
     public getTextWidth(text: string, font?: any) {
@@ -118,30 +98,6 @@ export class Visual implements IVisual {
         this.height = this.options.viewport.height - this.margin.top - this.margin.bottom;
     }
 
-    public createThresholdLines(dataView: DataView) {
-        this.thresholdLines = [];
-        for (var i = 0; i < this.visualSettings.stile.nOfThresholdLines.value; i++) {
-            var tl = new ThresholdLines();
-            const defaultColor: Fill = {
-                solid: {
-                    color: "#000000",
-                }
-            };
-            const prop: DataViewObjectPropertyIdentifier = {
-                objectName: "lineOptions",
-                propertyName: "lineColor"
-            };
-
-            let colorFromObjects: Fill;
-            if (dataView.categorical.categories[0].objects?.[i]) {
-                colorFromObjects = dataViewObjects.getValue(dataView.categorical.categories[0]?.objects[i], prop);
-            }
-            let color = colorFromObjects?.solid.color ?? defaultColor.solid.color;
-            tl.setColor(color);
-            this.thresholdLines.push(tl);
-        }
-    }
-
     public update(options: VisualUpdateOptions) {
         Object.prototype["keys"] = function () {
             return Object.keys(this)
@@ -163,7 +119,7 @@ export class Visual implements IVisual {
             .style("width", "100%")
 
         // Creazione dell'header della tabella
-        let thead = table.append("thead").append("tr");
+        let thead_tr = table.append("thead").append("tr");
         var data = []
         let columns = dataView.categorical.categories
         let values = dataView.categorical.values
@@ -171,8 +127,9 @@ export class Visual implements IVisual {
             data.push({})
         }
         for (let i = 0; i < columns.length; i++) {
-            if (i > 0) thead.append("th").text(columns[i].source.displayName).style("border", "1px solid black").style("background", "#ddd");
-            console.log(`GRUPPO ${i} = ${columns[i].source.displayName}`)
+            if (i > 0) {
+                thead_tr.append("th").text(columns[i].source.displayName).attr("class","cell header")
+            }
             data[0][columns[i].source.displayName] = columns[i].values[0];
         }
         data[0][values[0].source.displayName] = 0;
@@ -182,7 +139,7 @@ export class Visual implements IVisual {
             }
             data[i][values[0].source.displayName] = dataView.categorical.values.grouped()[0].values[0].values[i]
         }
-        data.sort((a, b) => {
+        data.sort((a, b) => {// ordino i dati prima per i valori testuali o altro, per ultimo gli anni accademici in ordine decrescente
             for (let i = 1; i < columns.length; i++) {
                 let result = a[columns[i].source.displayName].localeCompare(b[columns[i].source.displayName]);
                 if (result != 0) return result
@@ -190,14 +147,7 @@ export class Visual implements IVisual {
             let y1 = parseInt(a[columns[0].source.displayName].split("/")[0]);
             let y2 = parseInt(b[columns[0].source.displayName].split("/")[0]);
             return y2 - y1;
-            //return a[columns[columns.length - 1].source.displayName].localeCompare(b[columns[columns.length - 1].source.displayName]);
         })
-        let newdata = data.reduce((acc, d) => {
-            let year = d[columns[0].source.displayName]
-            if (acc[year] == undefined) acc[year] = []
-            acc[year].push(d)
-            return acc
-        }, {})
         let datafinal = {}
         for (let i = 0; i < data.length; i++) {//la prima è l'anno accademico e quindi non mi serve, in attesa di sistemarlo
             let d = data[i]
@@ -212,93 +162,55 @@ export class Visual implements IVisual {
             }
             row[d[keys[0]]] = d[keys[keys.length - 1]]
         }
-        console.log(data)
-        console.log(newdata)
-        console.log(datafinal)
         var allyears = (columns[0].values.filter((a, index, arr) => arr.indexOf(a) == index) as string[])
-        allyears.sort((a, b) => {
+        allyears.sort((a, b) => {// ordino gli anni accademici in ordine decrescente
             let y1 = parseInt(a.split("/")[0]);
             let y2 = parseInt(b.split("/")[0]);
             if (y1 != y2) return y2 - y1;
         })
         for (let k of allyears) {
-            thead.append("th").text(k).style("border", "1px solid black").style("background", "#ddd").style("padding", "0px 6px");
+            thead_tr.append("th").text(k).attr("class","cell header years")
         }
-        console.log("VALUES: ", values[0].source.displayName)
-        var fntest = function (subtotal_displayed, row, key, htmlElem, tbody, deep = 0) {
-            var inserted = false
-            for (let k1index = 0; k1index < row.keys().length; k1index++) {
-                let k1 = row.keys()[k1index];
-                if (k1index > 0) {
-                    tr = htmlElem.select(function () { this.parentNode })
+        /**
+         * 
+         * @param subtotal_displayed index della colonna per cui far visualizzare i totali
+         * @param row dataset dei dati
+         * @param htmlElem elemento HTML in cui inserire i dati
+         * @param tbody riferimento al tbody della table per cui occorre inserire nuovi elementi TR; htmlElem si modificherà di conseguenza
+         * @param deep riferimento alla profondità ricorsiva a cui si è arrivati
+         * @returns nulla
+         */
+        var populateTable = function (subtotal_displayed, row, htmlElem, tbody, deep = 0) {
+            if (deep == columns.length - 1) {
+                for (let k2 of allyears) {
+                    htmlElem.append("td").text(row[k2] ?? " ").attr("class", "cell value")
                 }
-                if (deep in subtotal_displayed) {
-                    var tr = htmlElem.append("tr")
-                    if (!inserted) {
-                        try {
-                            if (columns.length <= 2) {
-                                tr.append("td").text(key).attr("class", "cell")
-                            } else {
-                                tr.append("td").text(key).attr("rowspan", row.keys().length + 1).attr("class", "cell")
-                            }
-                            deep += 1;
-                        } catch (error) {
-                            console.log("Errore: ", error)
-                        }
-                    }
-                    inserted = true
-                }
-                if (deep == columns.length - 1) {
-                    //debugger;
-                    for (let k2 of allyears) {
-                        (columns.length <= 2 ? tr : htmlElem).append("td").text(row[k2] ?? " ").attr("class", "cell value")
-                    }
-                    return
-                }
-                if (columns.length > 2) {
-                    (tr ?? htmlElem).append("td").text(k1).attr("class", "cell")
-                }
-                fntest(subtotal_displayed, row[k1], k1, tr ?? htmlElem, tbody, deep + 1)
+                return
             }
-
-            //Valori degli anni
-            /*row = row[row.keys()[0]]
-            for(let k2 of allyears)
-                htmlElem.append("td").text(row[k2]??" ")
-            */
-        }
-
-        var maxRowSpan = 0
-        var fntest1 = function (subtotal_displayed, row, key, htmlElem, tbody, deep = 0, rowspan = []) {
             var inserted = false
             for (let k1index = 0; k1index < row.keys().length; k1index++) {
-                if (deep == 0) {
-                    rowspan = [];
-                }
+                /*if (k1index > 0) {
+                    let indexes = rowspan["keys"]().map(a => parseInt(a));
+                     for (let deep1 = deep + 1; deep1 <= Math.max(...indexes); deep1++) {
+                        delete rowspan[deep1];
+                    }
+                }*/
+                /* if (deep == 0) {
+                    rowspan = {};
+                } */
                 let k1 = row.keys()[k1index];
                 if (k1index > 0 && deep in subtotal_displayed) {
                     htmlElem = tbody.append("tr")
                 } else if (deep in subtotal_displayed) {
                     htmlElem = htmlElem.append("tr")
                 }
-                if (deep == columns.length - 1) {
-                    //debugger;
-                    for (let k2 of allyears) {
-                        htmlElem.append("td").text(row[k2] ?? " ").attr("class", "cell value")
-                    }
-                    return
-                }
                 if (inserted) {
-                    //c'è già una riga precedente
                     htmlElem = tbody.append("tr")
                 }
                 let prova = deep == columns.length - 2 ? 1 : myMaxDeep(row[k1], deep, columns.length - 2);
                 prova = prova > 0 ? (prova + (deep in subtotal_displayed ? 1 : 0)) : 1
-                console.log(k1, " -> ", prova, " --> ", maxRowSpan)
                 let td = htmlElem.append("td").text(k1).attr("class", "cell").attr("rowspan", prova)
-                if (deep == columns.length - 2) {
-                    rowspan.push({ deep: deep, value: k1 })
-                }
+                debugger;
                 inserted = true
                 if (columns.length > 2 && deep in subtotal_displayed) {
                     //td.attr("rowspan", row[k1].keys().length + 1)
@@ -307,79 +219,24 @@ export class Visual implements IVisual {
                         //td.attr("rowspan", row[k1].keys().length)
                     }
                 }
-                maxRowSpan = row.keys().length;
-                fntest1(subtotal_displayed, row[k1], k1, htmlElem, tbody, deep + 1, rowspan)
-                debugger;
+                populateTable(subtotal_displayed, row[k1], htmlElem, tbody, deep + 1)
                 if (deep in subtotal_displayed) {
                     htmlElem = tbody.append("tr")
                     htmlElem.append("td").text("Totale per " + k1).attr("class", "cell total").attr("colspan", columns.length - 2 - deep)
                     let totale = []
                     for (let year of allyears) {
-                        //totale.push(datafinal[key].keys().map(k => datafinal[key][k][year] ?? 0).reduce((a, b) => a + b, 0))
                         totale.push(data.map(a => a[columns[0].source.displayName] == year && a[columns[deep + 1].source.displayName] == k1 ? a[values[0].source.displayName] : 0).reduce((a, b) => a + b, 0))
                     }
                     for (let t of totale) {
                         htmlElem.append("td").text(t).attr("class", "cell value total")
                     }
-                    //let rowspanvalue = maxSubkeys(row)[k1]+1
-                    let rowspanvalue = rowspan.length + 1;
-                    //td.attr("rowspan", rowspanvalue)
-                    rowspan = []
                 }
             }
         }
 
         // Creazione del corpo della tabella
-        try {
-            var tbody = table.append("tbody");
-        } catch (error) {
-            console.log("ERRORE: ", error)
-        }
-        while (true) {
-            for (let key of datafinal["keys"]()) {
-                fntest1([0], datafinal, key, tbody, tbody)
-                /*let totalRow = tbody.append("tr")
-                totalRow.append("td").attr("colspan", columns.length - 2).text("Totale per " + key).attr("class", "cell total")
-                let totale = []
-                for (let year of allyears) {
-                    //totale.push(datafinal[key].keys().map(k => datafinal[key][k][year] ?? 0).reduce((a, b) => a + b, 0))
-                    totale.push(data.map(a => a[columns[0].source.displayName] == year && a[columns[1].source.displayName] == key ? a[values[0].source.displayName] : 0).reduce((a, b) => a + b, 0))
-                }
-                for (let t of totale) {
-                    totalRow.append("td").text(t).attr("class", "cell value total")
-                }*/
-            }
-            break;
-        }
-        /*for (let i = 0; i < data.length; i++) {
-            let tr = tbody.append("tr")
-            var names = []
-            var previous = {}
-            for (let col = 1; col < columns.length; col++) {
-                if(previous[col]==undefined){
-                    previous[col] = data[i][columns[col].source.displayName]
-                    tr.append("td").text(data[i][columns[col].source.displayName]).style("border", "1px solid black").attr("rowspan",datafinal[data[i][columns[col].source.displayName].length])
-                }
-                if(col==1 && data[i][columns[col].source.displayName] != previous[col]){
-                    tr.append("td").text(data[i][columns[col].source.displayName]).style("border", "1px solid black").attr("rowspan",datafinal[data[i][columns[col].source.displayName].length])
-                }
-                previous[col] = data[i][columns[col].source.displayName]
-                names.push(columns[col].source.displayName)
-            }
-            for (let k = 0; k < allyears.length; k++) {
-                let valueOfColumn = newdata[allyears[k]].filter(a => {
-                    for (let n of names) {
-                        if (a[n] != data[i][n]) return false
-                    }
-                    return true
-                })[0] ?? []
-                valueOfColumn = Object.keys(valueOfColumn).length > 0 ? valueOfColumn[values[0].source.displayName] : " "
-                tr.append("td").text(valueOfColumn).style("text-align", "center").style("border", "1px solid black")
-            }
-        }*/
-
-        // Disegna il boxplot per ciascuna area delle domande
-        const activeSelections = this.selectionManager.getSelectionIds();
+        var tbody = table.append("tbody");
+        populateTable([0], datafinal, tbody, tbody)
 
         if (this.visualSettings.stile.showLogo.value == true) {
             this.svg
