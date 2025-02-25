@@ -60,7 +60,11 @@ export class Visual implements IVisual {
     private values: powerbi.DataViewValueColumns;
     private allyears: string[];
     private data: any[];
-    datafinal: {};
+    private datafinal: {};
+    private studenti_totali = {};
+    private studenti_ext_totali = {};
+    private is_unige: boolean;
+    private container: d3.Selection<HTMLDivElement, any, any, any>;
 
     constructor(options: VisualConstructorOptions) {
         this.host = options.host;
@@ -120,8 +124,9 @@ export class Visual implements IVisual {
         // Creazione della tabella
         this.heightSVG = 80;
         this.root.selectAll("*").remove();
+        this.container = this.root.append("div").style("width", "100%").style("height","100%").style("display","flex").style("flex-direction","column")
         if (this.visualSettings.stile.showLogo.value == true) {
-            this.svg = this.root.append("svg").style("width", "100%").style("height", this.heightSVG + "px").style("border-bottom","1px solid black").style("box-sizing","border-box")
+            this.svg = this.container.append("svg").style("width", "100%").style("height", this.heightSVG + "px").style("border-bottom","1px solid black").style("box-sizing","border-box")
             this.svg
                 .append("image")
                 .attr("xlink:href", "data:image/png;base64," + image)
@@ -132,9 +137,12 @@ export class Visual implements IVisual {
                 .attr("width", this.visualSettings.stile.logoSize.value ? this.visualSettings.stile.logoSize.value : 300)  // Larghezza dell'immagine
                 .attr("height", this.visualSettings.stile.logoSize.value ? this.visualSettings.stile.logoSize.value / 4 : 75);  // Altezza dell'immagine
         }
-        let table = this.root.append("div").style("height", this.visualSettings.stile.showLogo.value == true ? "calc(100% - "+this.heightSVG+"px)" : "100%").style("overflow", "scroll").append("table")
+        let div = this.container.append("div").style("width","100%").style("display","flex").style("justify-content","right")
+        let synTable = div.append("div").style("text-align","right").style("display","flex").style("justify-content","right").style("padding-right","20px").append("table").style("border-collapse","collapse").attr("class","syntable")
+        let table = this.container.append("div").style("height", this.visualSettings.stile.showLogo.value == true ? "calc(100% - "+this.heightSVG+"px)" : "100%").style("overflow", "scroll").append("table")
             .style("border-collapse", "collapse")
             .style("width", "100%")
+            .style("height","100%")
 
         // Creazione dell'header della tabella
         let thead_tr = table.append("thead").append("tr");
@@ -176,10 +184,29 @@ export class Visual implements IVisual {
         for (let k of this.allyears) {
             thead_tr.append("th").text(k).attr("class", "cell header years")
         }
+
         this.even_row = false
         // Creazione del corpo della tabella
         var tbody = table.append("tbody");
         this.populateTable([0], this.datafinal, tbody, tbody)
+        this.populateSyntTable(synTable)
+    }
+
+    public populateSyntTable(synTable){
+        let synt_thead_tr = synTable.append("thead").append("tr");
+        synt_thead_tr.append("th")
+        let synt_tbody = synTable.append("tbody")
+        let synt_tbody_tr = synt_tbody.append("tr")
+        synt_tbody_tr.append("td").text("Studenti UniGe - totale avvii carriera").attr("class","synt cell unige")
+        for (let k of this.allyears) {
+            synt_thead_tr.append("th").text(k).attr("class","synt cell header years")
+            synt_tbody_tr.append("td").text(this.studenti_totali[k]).attr("class","synt cell value unige")
+        }
+        synt_tbody_tr = synt_tbody.append("tr")
+        synt_tbody_tr.append("td").text("Studenti UniGe - totale avvii carriera fuori UniGe").attr("class","synt cell extunige")
+        for (let k of this.allyears) {
+            synt_tbody_tr.append("td").text(this.studenti_ext_totali[k]).attr("class","synt cell value extunige")
+        }
     }
 
     public createDataFinal(){
@@ -211,15 +238,24 @@ export class Visual implements IVisual {
         if (deep == this.columns.length - 1) {
             for (let k2 of this.allyears) {
                 htmlElem.append("td").text(row[k2] ?? " ").attr("class", "cell value "+ (this.even_row ? "even": "odd"))
+                if(!this.is_unige){
+                    this.studenti_ext_totali[k2] = this.studenti_ext_totali[k2] ? this.studenti_ext_totali[k2] + (row[k2]??0) : (row[k2]??0)
+                }
+                this.studenti_totali[k2] = this.studenti_totali[k2] ? this.studenti_totali[k2] + (row[k2]??0) : (row[k2]??0)
             }
             return
         }
         var inserted = false
         for (let k1index = 0; k1index < row.keys().length; k1index++) {
+            let k1 = row.keys()[k1index];
             if(deep==0){
                 this.even_row = !this.even_row;
+                if(k1.toLowerCase().includes("unige") || k1.toLowerCase().includes("genova")){
+                    this.is_unige = true
+                }else{
+                    this.is_unige = false
+                }
             }
-            let k1 = row.keys()[k1index];
             if (k1index > 0 && deep in subtotal_displayed) {
                 htmlElem = tbody.append("tr")
             } else if (deep in subtotal_displayed) {

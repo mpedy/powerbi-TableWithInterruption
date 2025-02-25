@@ -59,3 +59,18 @@
     vertical-align: middle;
     padding: 6px;
 }
+.syntable{
+    margin-bottom: 20px;
+}
+.synt.cell{
+    padding: 6px;
+}
+.synt.unige, .synt.unige.value{
+    background-color: #002677;
+    color: white;
+    border: 1px solid white;
+}
+.synt.extunige, .synt.extunige.value{
+    background-color: #F4DA40;
+    color: black;
+}
