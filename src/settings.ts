@@ -32,8 +32,6 @@ import powerbiVisualsApi from "powerbi-visuals-api";
 import Card = formattingSettings.SimpleCard;
 import Slice = formattingSettings.Slice;
 import Model = formattingSettings.Model;
-import { BoxPlotData } from "./boxplotdata";
-import { ThresholdLines } from "./thresholdLines";
 
 /**
  * Data Point Formatting Card
@@ -214,34 +212,4 @@ export class VisualSettings extends Model {
     public thres : OpzioniThreshold = new OpzioniThreshold();
     public colorSelector: ColorazioneAree = new ColorazioneAree();
     public cards: Card[] = [this.stile, this.thres, this.colorSelector];
-
-    public populateColorSelector(data: BoxPlotData[]){
-        let slices = this.colorSelector.slices;
-        if(data){
-            data.forEach(d=>{
-                slices.push(new formattingSettings.ColorPicker({
-                    name: "fill",
-                    displayName: d.area,
-                    value: {value: d.color},
-                    visible: true,
-                    selector: d.selectionId.getSelector()
-                }));
-            });
-        }
-    }
-
-    public populateLineOptions(thresholdLines: ThresholdLines[]){
-        let slices = this.thres.slices;
-        var index=0;
-        thresholdLines.forEach(th=>{
-            slices.push(
-                new formattingSettings.ColorPicker({
-                    name: "lineColor",
-                    displayName: `Colore linea ${th.getValue()}%`,
-                    value: {value: th.getColor()},
-                    visible: true
-                })
-            )
-        });
-    }
 }

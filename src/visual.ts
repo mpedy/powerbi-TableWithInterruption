@@ -55,6 +55,12 @@ export class Visual implements IVisual {
     private visualSettings: VisualSettings;
     private formattingSettingsService: FormattingSettingsService;
     private heightSVG: number;
+    private even_row: boolean;
+    private columns: powerbi.DataViewCategoryColumn[];
+    private values: powerbi.DataViewValueColumns;
+    private allyears: string[];
+    private data: any[];
+    datafinal: {};
 
     constructor(options: VisualConstructorOptions) {
         this.host = options.host;
@@ -132,39 +138,56 @@ export class Visual implements IVisual {
 
         // Creazione dell'header della tabella
         let thead_tr = table.append("thead").append("tr");
-        var data = []
-        let columns = dataView.categorical.categories
-        let values = dataView.categorical.values
-        for (let i = 0; i < columns[0].values.length; i++) {
-            data.push({})
+        this.data = []
+        this.columns = dataView.categorical.categories
+        this.values = dataView.categorical.values
+        for (let i = 0; i < this.columns[0].values.length; i++) {
+            this.data.push({})
         }
-        for (let i = 0; i < columns.length; i++) {
+        for (let i = 0; i < this.columns.length; i++) {
             if (i > 0) {
-                thead_tr.append("th").text(columns[i].source.displayName).attr("class", "cell header")
+                thead_tr.append("th").text(this.columns[i].source.displayName).attr("class", "cell header")
             }
-            data[0][columns[i].source.displayName] = columns[i].values[0];
+            this.data[0][this.columns[i].source.displayName] = this.columns[i].values[0];
         }
-        data[0][values[0].source.displayName] = 0;
-        for (let i = 0; i < columns[0].values.length; i++) {
-            for (let j = 0; j < columns.length; j++) {
-                data[i][columns[j].source.displayName] = columns[j].values[i];
+        this.data[0][this.values[0].source.displayName] = 0;
+        for (let i = 0; i < this.columns[0].values.length; i++) {
+            for (let j = 0; j < this.columns.length; j++) {
+                this.data[i][this.columns[j].source.displayName] = this.columns[j].values[i];
             }
-            data[i][values[0].source.displayName] = dataView.categorical.values.grouped()[0].values[0].values[i]
+            this.data[i][this.values[0].source.displayName] = dataView.categorical.values.grouped()[0].values[0].values[i]
         }
-        data.sort((a, b) => {// ordino i dati prima per i valori testuali o altro, per ultimo gli anni accademici in ordine decrescente
-            for (let i = 1; i < columns.length; i++) {
-                let result = a[columns[i].source.displayName].localeCompare(b[columns[i].source.displayName]);
+        this.data.sort((a, b) => {// ordino i dati prima per i valori testuali o altro, per ultimo gli anni accademici in ordine decrescente
+            for (let i = 1; i < this.columns.length; i++) {
+                let result = a[this.columns[i].source.displayName].localeCompare(b[this.columns[i].source.displayName]);
                 if (result != 0) return result
             }
-            let y1 = parseInt(a[columns[0].source.displayName].split("/")[0]);
-            let y2 = parseInt(b[columns[0].source.displayName].split("/")[0]);
+            let y1 = parseInt(a[this.columns[0].source.displayName].split("/")[0]);
+            let y2 = parseInt(b[this.columns[0].source.displayName].split("/")[0]);
             return y2 - y1;
         })
-        let datafinal = {}
-        for (let i = 0; i < data.length; i++) {//la prima è l'anno accademico e quindi non mi serve, in attesa di sistemarlo
-            let d = data[i]
+        this.createDataFinal()
+        this.allyears = (this.columns[0].values.filter((a, index, arr) => arr.indexOf(a) == index) as string[])
+        this.allyears.sort((a, b) => {// ordino gli anni accademici in ordine decrescente
+            let y1 = parseInt(a.split("/")[0]);
+            let y2 = parseInt(b.split("/")[0]);
+            if (y1 != y2) return y2 - y1;
+        })
+        for (let k of this.allyears) {
+            thead_tr.append("th").text(k).attr("class", "cell header years")
+        }
+        this.even_row = false
+        // Creazione del corpo della tabella
+        var tbody = table.append("tbody");
+        this.populateTable([0], this.datafinal, tbody, tbody)
+    }
+
+    public createDataFinal(){
+        this.datafinal = {}
+        for (let i = 0; i < this.data.length; i++) {//la prima è l'anno accademico e quindi non mi serve, in attesa di sistemarlo
+            let d = this.data[i]
             let keys = Object.keys(d)
-            let row = datafinal;
+            let row = this.datafinal;
             for (let k1 = 1; k1 < keys.length - 1; k1++) {
                 let k = d[keys[k1]]
                 if (row[k] == undefined) {
@@ -174,68 +197,54 @@ export class Visual implements IVisual {
             }
             row[d[keys[0]]] = d[keys[keys.length - 1]]
         }
-        var allyears = (columns[0].values.filter((a, index, arr) => arr.indexOf(a) == index) as string[])
-        allyears.sort((a, b) => {// ordino gli anni accademici in ordine decrescente
-            let y1 = parseInt(a.split("/")[0]);
-            let y2 = parseInt(b.split("/")[0]);
-            if (y1 != y2) return y2 - y1;
-        })
-        for (let k of allyears) {
-            thead_tr.append("th").text(k).attr("class", "cell header years")
-        }
-        /**
-         * 
-         * @param subtotal_displayed index della colonna per cui far visualizzare i totali
-         * @param row dataset dei dati
-         * @param htmlElem elemento HTML in cui inserire i dati
-         * @param tbody riferimento al tbody della table per cui occorre inserire nuovi elementi TR; htmlElem si modificherà di conseguenza
-         * @param deep riferimento alla profondità ricorsiva a cui si è arrivati
-         * @returns nulla
-         */
-        var even_row = false
-        var populateTable = function (subtotal_displayed, row, htmlElem, tbody, deep = 0) {
-            if (deep == columns.length - 1) {
-                for (let k2 of allyears) {
-                    htmlElem.append("td").text(row[k2] ?? " ").attr("class", "cell value "+ (even_row ? "even": "odd"))
-                }
-                return
+    }
+    /**
+    * 
+    * @param subtotal_displayed index della colonna per cui far visualizzare i totali
+    * @param row dataset dei dati
+    * @param htmlElem elemento HTML in cui inserire i dati
+    * @param tbody riferimento al tbody della table per cui occorre inserire nuovi elementi TR; htmlElem si modificherà di conseguenza
+    * @param deep riferimento alla profondità ricorsiva a cui si è arrivati
+    * @returns nulla
+    */
+    public populateTable (subtotal_displayed, row, htmlElem, tbody, deep = 0) {
+        if (deep == this.columns.length - 1) {
+            for (let k2 of this.allyears) {
+                htmlElem.append("td").text(row[k2] ?? " ").attr("class", "cell value "+ (this.even_row ? "even": "odd"))
             }
-            var inserted = false
-            for (let k1index = 0; k1index < row.keys().length; k1index++) {
-                if(deep==0){
-                    even_row = !even_row;
+            return
+        }
+        var inserted = false
+        for (let k1index = 0; k1index < row.keys().length; k1index++) {
+            if(deep==0){
+                this.even_row = !this.even_row;
+            }
+            let k1 = row.keys()[k1index];
+            if (k1index > 0 && deep in subtotal_displayed) {
+                htmlElem = tbody.append("tr")
+            } else if (deep in subtotal_displayed) {
+                htmlElem = htmlElem.append("tr")
+            }
+            if (inserted) {
+                htmlElem = tbody.append("tr")
+            }
+            let rowspan = (deep == this.columns.length - 2 ? 1 : myMaxDeep(row[k1], deep, this.columns.length - 2));
+            rowspan = rowspan > 0 ? (rowspan + (deep in subtotal_displayed ? 1 : 0)) : 1
+            let td = htmlElem.append("td").text(k1).attr("class", "cell " + (this.even_row ? "even": "odd")).attr("rowspan", rowspan).attr("deep",deep)
+            inserted = true
+            this.populateTable(subtotal_displayed, row[k1], htmlElem, tbody, deep + 1)
+            if (deep in subtotal_displayed) {
+                htmlElem = tbody.append("tr")
+                htmlElem.append("td").text("Totale laureati UniGe che continuano la carriera universitaria presso " + k1.toUpperCase()).attr("class", "cell total "+(this.even_row ? "even": "odd")).attr("colspan", this.columns.length - 2 - deep)
+                let totale = []
+                for (let year of this.allyears) {
+                    totale.push(this.data.map(a => a[this.columns[0].source.displayName] == year && a[this.columns[deep + 1].source.displayName] == k1 ? a[this.values[0].source.displayName] : 0).reduce((a, b) => a + b, 0))
                 }
-                let k1 = row.keys()[k1index];
-                if (k1index > 0 && deep in subtotal_displayed) {
-                    htmlElem = tbody.append("tr")
-                } else if (deep in subtotal_displayed) {
-                    htmlElem = htmlElem.append("tr")
-                }
-                if (inserted) {
-                    htmlElem = tbody.append("tr")
-                }
-                let prova = deep == columns.length - 2 ? 1 : myMaxDeep(row[k1], deep, columns.length - 2);
-                prova = prova > 0 ? (prova + (deep in subtotal_displayed ? 1 : 0)) : 1
-                let td = htmlElem.append("td").text(k1).attr("class", "cell " + (even_row ? "even": "odd")).attr("rowspan", prova).attr("deep",deep)
-                inserted = true
-                populateTable(subtotal_displayed, row[k1], htmlElem, tbody, deep + 1)
-                if (deep in subtotal_displayed) {
-                    htmlElem = tbody.append("tr")
-                    htmlElem.append("td").text("Totale laureati UniGe che continuano la carriera universitaria presso " + k1.toUpperCase()).attr("class", "cell total "+(even_row ? "even": "odd")).attr("colspan", columns.length - 2 - deep)
-                    let totale = []
-                    for (let year of allyears) {
-                        totale.push(data.map(a => a[columns[0].source.displayName] == year && a[columns[deep + 1].source.displayName] == k1 ? a[values[0].source.displayName] : 0).reduce((a, b) => a + b, 0))
-                    }
-                    for (let t of totale) {
-                        htmlElem.append("td").text(t).attr("class", "cell value total")
-                    }
+                for (let t of totale) {
+                    htmlElem.append("td").text(t).attr("class", "cell value total")
                 }
             }
         }
-
-        // Creazione del corpo della tabella
-        var tbody = table.append("tbody");
-        populateTable([0], datafinal, tbody, tbody)
     }
 
     // Funzione per spezzare le etichette troppo lunghe
