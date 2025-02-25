@@ -2,12 +2,12 @@
     "privileges": [],
     "dataRoles": [
         {
-            "displayName": "Category",
+            "displayName": "AA e dimensioni",
             "name": "category",
             "kind": "Grouping"
         },
         {
-            "displayName": "Y Axis",
+            "displayName": "Valori da raggruppare",
             "name": "measure",
             "kind": "Measure"
         }
