@@ -1,6 +1,6 @@
 {
-  "name": "Boxplot",
-  "description": "Boxplot per l'analisi dei QVD",
+  "name": "tablewithinterruptions",
+  "description": "Table with interruption like BA report tools",
   "author": {
     "name": "Matteo Provendola",
     "email": "matteo.provendola@unige.it"
