@@ -266,7 +266,7 @@ export class Visual implements IVisual {
                     }
                     this.trends.push(actualValue)
                 }
-                htmlElem.append("td").text(row[k2] ?? " ").attr("class", "cell value " + (this.even_row ? "even" : "odd"))
+                htmlElem.append("td").text(row[k2] ?? 0).attr("class", "cell value " + (this.even_row ? "even" : "odd"))
                 if (!this.is_unige) {
                     this.studenti_ext_totali[k2] = this.studenti_ext_totali[k2] ? this.studenti_ext_totali[k2] + (row[k2] ?? 0) : (row[k2] ?? 0)
                 }
