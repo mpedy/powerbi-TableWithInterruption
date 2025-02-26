@@ -39,6 +39,7 @@ import IVisualHost = powerbi.extensibility.visual.IVisualHost;
 import * as d3 from "d3";
 import { image } from "./unige_image";
 import { myMaxDeep } from "./Utils";
+import { all_svgs } from "../style/trends/all";
 
 
 type Selection<T extends d3.BaseType> = d3.Selection<T, any, any, any>;
@@ -65,6 +66,10 @@ export class Visual implements IVisual {
     private studenti_ext_totali = {};
     private is_unige: boolean;
     private container: d3.Selection<HTMLDivElement, any, any, any>;
+    private synTable: d3.Selection<HTMLTableElement, any, any, any>;
+    private trends: number[];
+    last_value: any;
+    trend_incomplete: boolean;
 
     constructor(options: VisualConstructorOptions) {
         this.host = options.host;
@@ -72,6 +77,8 @@ export class Visual implements IVisual {
         this.root = d3.select(options.element);
         this.svg = d3.select(options.element).append('svg');
         this.selectionManager = this.host.createSelectionManager();
+        this.studenti_totali = {};
+        this.studenti_ext_totali = {};
     }
 
     public getTextWidth(text: string, font?: any) {
@@ -124,25 +131,27 @@ export class Visual implements IVisual {
         // Creazione della tabella
         this.heightSVG = 80;
         this.root.selectAll("*").remove();
-        this.container = this.root.append("div").style("width", "100%").style("height","100%").style("display","flex").style("flex-direction","column")
+        this.container = this.root.append("div").style("width", "100%").style("height", "100%").style("display", "flex").style("flex-direction", "column")
         if (this.visualSettings.stile.showLogo.value == true) {
-            this.svg = this.container.append("svg").style("width", "100%").style("height", this.heightSVG + "px").style("border-bottom","1px solid black").style("box-sizing","border-box")
+            this.svg = this.container.append("svg").style("width", "100%").style("height", this.heightSVG + "px").style("border-bottom", "1px solid black").style("box-sizing", "border-box")
             this.svg
                 .append("image")
                 .attr("xlink:href", "data:image/png;base64," + image)
                 .attr("x", this.width - 70)  // Posizione X dell'immagine
                 .attr("y", 0)  // Posizione Y dell'immagine
                 //.attr("height", this.heightSVG)
-            //.attr("width",this.heightSVG*1.66)
+                //.attr("width",this.heightSVG*1.66)
                 .attr("width", this.visualSettings.stile.logoSize.value ? this.visualSettings.stile.logoSize.value : 300)  // Larghezza dell'immagine
                 .attr("height", this.visualSettings.stile.logoSize.value ? this.visualSettings.stile.logoSize.value / 4 : 75);  // Altezza dell'immagine
         }
-        let div = this.container.append("div").style("width","100%").style("display","flex").style("justify-content","right")
-        let synTable = div.append("div").style("text-align","right").style("display","flex").style("justify-content","right").style("padding-right","20px").append("table").style("border-collapse","collapse").attr("class","syntable")
-        let table = this.container.append("div").style("height", this.visualSettings.stile.showLogo.value == true ? "calc(100% - "+this.heightSVG+"px)" : "100%").style("overflow", "scroll").append("table")
+        let div = this.container.append("div").style("width", "100%").style("display", "flex").style("justify-content", "right")
+        if (this.visualSettings.stile.showSyntTotalTable.value == true) {
+            this.synTable = div.append("div").style("text-align", "right").style("display", "flex").style("justify-content", "right").style("padding-right", "20px").append("table").style("border-collapse", "collapse").attr("class", "syntable")
+        }
+        let table = this.container.append("div").attr("class", "table-container").style("height", this.visualSettings.stile.showLogo.value == true ? "calc(100% - " + this.heightSVG + "px)" : "100%").style("overflow-y", "scroll").append("table")
             .style("border-collapse", "collapse")
             .style("width", "100%")
-            .style("height","100%")
+            .style("height", "100%")
 
         // Creazione dell'header della tabella
         let thead_tr = table.append("thead").append("tr");
@@ -184,32 +193,39 @@ export class Visual implements IVisual {
         for (let k of this.allyears) {
             thead_tr.append("th").text(k).attr("class", "cell header years")
         }
+        if (this.visualSettings.stile.showTrend.value == true) {
+            thead_tr.append("th").text("Trend ultimo triennio").attr("class", "cell header years")
+        }
 
         this.even_row = false
         // Creazione del corpo della tabella
         var tbody = table.append("tbody");
+        this.studenti_totali = {};
+        this.studenti_ext_totali = {};
         this.populateTable([0], this.datafinal, tbody, tbody)
-        this.populateSyntTable(synTable)
+        if (this.visualSettings.stile.showSyntTotalTable.value == true) {
+            this.populateSyntTable()
+        }
     }
 
-    public populateSyntTable(synTable){
-        let synt_thead_tr = synTable.append("thead").append("tr");
+    public populateSyntTable() {
+        let synt_thead_tr = this.synTable.append("thead").append("tr");
         synt_thead_tr.append("th")
-        let synt_tbody = synTable.append("tbody")
+        let synt_tbody = this.synTable.append("tbody")
         let synt_tbody_tr = synt_tbody.append("tr")
-        synt_tbody_tr.append("td").text("Studenti UniGe - totale avvii carriera").attr("class","synt cell unige")
+        synt_tbody_tr.append("td").text("Totale avvii di carriera degli studenti UniGe").attr("class", "synt cell unige")
         for (let k of this.allyears) {
-            synt_thead_tr.append("th").text(k).attr("class","synt cell header years")
-            synt_tbody_tr.append("td").text(this.studenti_totali[k]).attr("class","synt cell value unige")
+            synt_thead_tr.append("th").text(k).attr("class", "synt cell header years")
+            synt_tbody_tr.append("td").text(this.studenti_totali[k]).attr("class", "synt cell value unige")
         }
         synt_tbody_tr = synt_tbody.append("tr")
-        synt_tbody_tr.append("td").text("Studenti UniGe - totale avvii carriera fuori UniGe").attr("class","synt cell extunige")
+        synt_tbody_tr.append("td").text("Totale studenti UniGe che avviano carriera fuori UniGe").attr("class", "synt cell extunige")
         for (let k of this.allyears) {
-            synt_tbody_tr.append("td").text(this.studenti_ext_totali[k]).attr("class","synt cell value extunige")
+            synt_tbody_tr.append("td").text(this.studenti_ext_totali[k]).attr("class", "synt cell value extunige")
         }
     }
 
-    public createDataFinal(){
+    public createDataFinal() {
         this.datafinal = {}
         for (let i = 0; i < this.data.length; i++) {//la prima è l'anno accademico e quindi non mi serve, in attesa di sistemarlo
             let d = this.data[i]
@@ -234,25 +250,46 @@ export class Visual implements IVisual {
     * @param deep riferimento alla profondità ricorsiva a cui si è arrivati
     * @returns nulla
     */
-    public populateTable (subtotal_displayed, row, htmlElem, tbody, deep = 0) {
+    public populateTable(subtotal_displayed, row, htmlElem, tbody, deep = 0) {
         if (deep == this.columns.length - 1) {
+            if (this.visualSettings.stile.showTrend.value == true) {
+                this.trends = []
+                this.last_value = undefined;
+                this.trend_incomplete = false
+            }
             for (let k2 of this.allyears) {
-                htmlElem.append("td").text(row[k2] ?? " ").attr("class", "cell value "+ (this.even_row ? "even": "odd"))
-                if(!this.is_unige){
-                    this.studenti_ext_totali[k2] = this.studenti_ext_totali[k2] ? this.studenti_ext_totali[k2] + (row[k2]??0) : (row[k2]??0)
+                if (this.visualSettings.stile.showTrendByCdS.value == true) {
+                    let actualValue = row[k2] ?? " "
+                    if (actualValue == " ") {
+                        actualValue = 0;
+                        this.trend_incomplete = true
+                    }
+                    this.trends.push(actualValue)
                 }
-                this.studenti_totali[k2] = this.studenti_totali[k2] ? this.studenti_totali[k2] + (row[k2]??0) : (row[k2]??0)
+                htmlElem.append("td").text(row[k2] ?? " ").attr("class", "cell value " + (this.even_row ? "even" : "odd"))
+                if (!this.is_unige) {
+                    this.studenti_ext_totali[k2] = this.studenti_ext_totali[k2] ? this.studenti_ext_totali[k2] + (row[k2] ?? 0) : (row[k2] ?? 0)
+                }
+                this.studenti_totali[k2] = this.studenti_totali[k2] ? this.studenti_totali[k2] + (row[k2] ?? 0) : (row[k2] ?? 0)
+            }
+            if (this.visualSettings.stile.showTrendByCdS.value == true) {
+                //htmlElem.append("td").text(this.trends.filter(Number.isFinite).map((a,i,arr)=> arr[i-1]<a ? 1 : (arr[i-1]==a ? 0 : -1)).slice(1).join(" "))
+                if (!this.trend_incomplete) {
+                    this.getTrend(htmlElem.append("td"));
+                }
+            } else {
+                htmlElem.append("td").attr("class","nothing")
             }
             return
         }
         var inserted = false
         for (let k1index = 0; k1index < row.keys().length; k1index++) {
             let k1 = row.keys()[k1index];
-            if(deep==0){
+            if (deep == 0) {
                 this.even_row = !this.even_row;
-                if(k1.toLowerCase().includes("unige") || k1.toLowerCase().includes("genova")){
+                if (k1.toLowerCase().includes("unige") || k1.toLowerCase().includes("genova")) {
                     this.is_unige = true
-                }else{
+                } else {
                     this.is_unige = false
                 }
             }
@@ -266,21 +303,88 @@ export class Visual implements IVisual {
             }
             let rowspan = (deep == this.columns.length - 2 ? 1 : myMaxDeep(row[k1], deep, this.columns.length - 2));
             rowspan = rowspan > 0 ? (rowspan + (deep in subtotal_displayed ? 1 : 0)) : 1
-            let td = htmlElem.append("td").text(k1).attr("class", "cell " + (this.even_row ? "even": "odd")).attr("rowspan", rowspan).attr("deep",deep)
+            let td = htmlElem.append("td").text(k1).attr("class", "cell " + (this.even_row ? "even" : "odd")).attr("rowspan", rowspan).attr("deep", deep)
             inserted = true
             this.populateTable(subtotal_displayed, row[k1], htmlElem, tbody, deep + 1)
             if (deep in subtotal_displayed) {
                 htmlElem = tbody.append("tr")
-                htmlElem.append("td").text("Totale laureati UniGe che continuano la carriera universitaria presso " + k1.toUpperCase()).attr("class", "cell total "+(this.even_row ? "even": "odd")).attr("colspan", this.columns.length - 2 - deep)
+                htmlElem.append("td").text("Totale laureati UniGe che continuano la carriera universitaria presso " + k1.toUpperCase()).attr("class", "cell total " + (this.even_row ? "even" : "odd")).attr("colspan", this.columns.length - 2 - deep)
                 let totale = []
                 for (let year of this.allyears) {
                     totale.push(this.data.map(a => a[this.columns[0].source.displayName] == year && a[this.columns[deep + 1].source.displayName] == k1 ? a[this.values[0].source.displayName] : 0).reduce((a, b) => a + b, 0))
                 }
+                this.trends = [];
                 for (let t of totale) {
+                    if (this.visualSettings.stile.showTrend.value == true) {
+                        this.trends.push(t)
+                    }
                     htmlElem.append("td").text(t).attr("class", "cell value total")
+                }
+                if (this.visualSettings.stile.showTrend.value == true) {
+                    this.getTrend(htmlElem.append("td"))
+                } else {
+                    htmlElem.append("td").attr("class","nothing")
                 }
             }
         }
+    }
+
+    private getTrend(htmlElem) {
+        console.log("ehila")
+        let trend = this.trends.filter(Number.isFinite).map((a, i, arr) => arr[i - 1] < a ? 1 : (arr[i - 1] == a ? 0 : -1)).slice(1);
+        let result = "non_saprei"
+        if (trend[0] === 0 && trend[1] === 0) {
+            result = "Uguale"
+        } else if (trend[0] === 0 && trend[1] === 1) {
+            result = "Deb_in_decrescita"
+        } else if (trend[0] === 0 && trend[1] === -1) {
+            result = "Deb_in_crescita"
+        } else if (trend[0] === 1 && trend[1] === 0) {
+            result = "Debolmente_in_decrescita"
+        } else if (trend[0] === 1 && trend[1] === 1) {
+            result = "Fortemente_in_decrescita"
+        } else if (trend[0] === 1 && trend[1] === -1) {
+            result = "Altalenante_in_decrescita"
+        } else if (trend[0] === -1 && trend[1] === -1) {
+            result = "Fortemente_in_crescita"
+        } else if (trend[0] === -1 && trend[1] === 0) {
+            result = "Debolmente_in_crescita"
+        } else if (trend[0] === -1 && trend[1] === 1) {
+            result = "Altalenante_in_crescita"
+        }
+        if (result == "Uguale") {
+            htmlElem.attr("class", "cell value").text("==")
+        } else {
+            htmlElem.attr("class", `cell value ${result} is_unige_${this.is_unige}`)
+        }
+        /*const svg = htmlElem.append("svg").attr("width",100).attr("height",100).attr("viewBox","0 0 100 100").attr("xmlns","http://www.w3.org/2000/svg")
+        svg.html(all_svgs)
+
+        // Nascondi tutti i path
+        svg.selectAll(":scope > *:not(defs)").style("display", "none");
+        let result = "non saprei"
+        if (trend[0] === 0 && trend[1] === 0) {
+            result = "Uguale"
+        } else if (trend[0] === 0 && trend[1] === 1) {
+            result = "Deb_in_crescita"
+        } else if (trend[0] === 0 && trend[1] === -1) {
+            result = "Deb_in_decrescita"
+        } else if (trend[0] === 1 && trend[1] === 0) {
+            result = "Debolmente_in_crescita"
+        } else if (trend[0] === 1 && trend[1] === 1) {
+            result = "Fortemente_in_crescita"
+        } else if (trend[0] === 1 && trend[1] === -1) {
+            result = "Altalenante_in_decrescita"
+        } else if (trend[0] === -1 && trend[1] === -1) {
+            result = "Fortemente_in_decrescita"
+        } else if (trend[0] === -1 && trend[1] === 0) {
+            result = "Debolmente_in_decrescita"
+        } else if (trend[0] === -1 && trend[1] === 1) {
+            result = "Altalenante_in_crescita"
+        }
+        if (result != "non saprei") {
+            svg.select(`:scope > #${result}`).style("display", "block")
+        }*/
     }
 
     // Funzione per spezzare le etichette troppo lunghe

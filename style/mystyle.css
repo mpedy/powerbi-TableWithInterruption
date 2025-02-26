@@ -12,7 +12,7 @@
     background: #ddd 
 }
 .cell.header.years{
-    padding: 0px 10px;
+    padding: 10px;
 }
 .cell{
     font-family: 'Fira Sans', sans-serif;
@@ -68,9 +68,78 @@
 .synt.unige, .synt.unige.value{
     background-color: #002677;
     color: white;
-    border: 1px solid white;
+    /*border: 1px solid white;*/
 }
 .synt.extunige, .synt.extunige.value{
     background-color: #F4DA40;
     color: black;
+}
+.synt.cell.cell.header.years{
+    background-color: #f2f2f2;
+}
+/* Personalizzazione della scrollbar */
+/*.table-container::-webkit-scrollbar {
+    width: 12px; /* Larghezza della scrollbar */
+/*}
+
+.table-container::-webkit-scrollbar-track {
+    background: #f1f1f1; /* Colore di sfondo della traccia */
+/*    border-radius: 10px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background: #888; /* Colore del pollice della scrollbar */
+/*    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+    background: #555; /* Colore del pollice al passaggio del mouse */
+/*}*/
+/*Per Firefox */
+/*.table-container{
+    scrollbar-color: #C8102E #25282A;
+}*/
+td.Deb_in_crescita{
+    background: url("./trends/su_arancione.png") no-repeat center center;
+    background-size: contain;
+}
+td.Deb_in_decrescita{
+    background: url("./trends/giu_arancione.png") no-repeat center center;
+    background-size: contain;
+}
+td.Debolmente_in_crescita{
+    background: url("./trends/su_arancione.png") no-repeat center center;
+    background-size: contain;
+}
+td.Fortemente_in_crescita{
+    background: url("./trends/su_rossa.png") no-repeat center center;
+    background-size: contain;
+}
+td.Altalenante_in_decrescita{
+    background: url("./trends/giu_arancione.png") no-repeat center center;
+    background-size: contain;
+}
+td.Fortemente_in_decrescita{
+    background: url("./trends/giu_verde.png") no-repeat center center;
+    background-size: contain;
+}
+td.Debolmente_in_decrescita{
+    background: url("./trends/giu_arancione.png") no-repeat center center;
+    background-size: contain;
+}
+td.Altalenante_in_crescita{
+    background: url("./trends/su_arancione.png") no-repeat center center;
+    background-size: contain;
+}
+td.is_unige_true.Fortemente_in_crescita{
+    background: url("./trends/su_verde.png") no-repeat center center;
+    background-size: contain;
+}
+td.is_unige_true.Fortemente_in_decrescita{
+    background: url("./trends/giu_rossa.png") no-repeat center center;
+    background-size: contain;
+}
+.nothing{
+    border: 0px solid transparent;
 }

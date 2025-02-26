@@ -16,14 +16,19 @@
     "objects": {
         "stile": {
             "properties": {
-                "Box size": {
+                "View trend": {
                     "type": {
-                        "numeric": true
+                        "bool": true
                     }
                 },
-                "Outliers radius": {
+                "View trend by CdS": {
                     "type": {
-                        "numeric": true
+                        "bool": true
+                    }
+                },
+                "View synthetic table": {
+                    "type": {
+                        "bool": true
                     }
                 },
                 "Logo size": {
@@ -34,11 +39,6 @@
                 "View logo": {
                     "type": {
                         "bool": true
-                    }
-                },
-                "Number of threshold lines": {
-                    "type": {
-                        "numeric": true
                     }
                 }
             }

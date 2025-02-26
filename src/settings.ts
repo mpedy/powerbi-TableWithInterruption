@@ -37,44 +37,32 @@ import Model = formattingSettings.Model;
  * Data Point Formatting Card
  */
 class ImpostazioniDiStile extends Card {
-    public boxSize = new formattingSettings.NumUpDown({
-        name: "Box size",
-        displayName: "Gestisci la larghezza dei box",
-        value: 0,
-        visible: true,
-        options: {
-            minValue: {
-                type: powerbiVisualsApi.visuals.ValidatorType.Min,
-                value: 0,
-            },
-            maxValue: {
-                type: powerbiVisualsApi.visuals.ValidatorType.Max,
-                value: 50,
-            }
-        },
-    });
-
-    public outliersRadius = new formattingSettings.NumUpDown({
-        name: "Outliers radius",
-        displayName: "Raggio del cerchio degli outliers",
-        value: 3,
-        visible: true,
-        options: {
-            minValue: {
-                type: powerbiVisualsApi.visuals.ValidatorType.Min,
-                value: 1,
-            },
-            maxValue: {
-                type: powerbiVisualsApi.visuals.ValidatorType.Max,
-                value: 10,
-            }
-        }
-    });
 
     public showLogo = new formattingSettings.ToggleSwitch({
         name: "View logo",
         displayName: "Visualizza il logo",
         value: true,
+        visible: true
+    });
+
+    public showSyntTotalTable = new formattingSettings.ToggleSwitch({
+        name: "View synthetic table",
+        displayName: "Visualizza tabella dei totali",
+        value: true,
+        visible: true
+    });
+
+    public showTrend = new formattingSettings.ToggleSwitch({
+        name: "View trend",
+        displayName: "Visualizza i trend",
+        value: false,
+        visible: true
+    });
+
+    public showTrendByCdS = new formattingSettings.ToggleSwitch({
+        name: "View trend by CdS",
+        displayName: "Visualizza i trend per singolo CdS",
+        value: false,
         visible: true
     });
 
@@ -85,37 +73,20 @@ class ImpostazioniDiStile extends Card {
         visible: true
     });
 
-    public nOfThresholdLines = new formattingSettings.NumUpDown({
-        name: "Number of threshold lines",
-        displayName: "Numero di linee per il threshold",
-        value: 0,
-        options: {
-            minValue: {
-                type: powerbiVisualsApi.visuals.ValidatorType.Min,
-                value: 0,
-            },
-            maxValue: {
-                type: powerbiVisualsApi.visuals.ValidatorType.Max,
-                value: 4,
-            }
-        },
-        visible: true
-    })
-
     public name: string = "stile";
     public displayName: string = "Impostazioni di stile";
     public visible: boolean = true;
-    public slices: Slice[] = [this.boxSize, this.outliersRadius, this.showLogo, this.logoSize, this.nOfThresholdLines];
+    public slices: Slice[] = [this.showSyntTotalTable, this.showTrend, this.showTrendByCdS, this.showLogo, this.logoSize];
 }
 
 class ColorazioneAree extends Card {
     public name: string = "colorSelector";
     public displayName: string = "Colorazione delle Aree";
     public visible = true;
-    public slices : Slice[] = [];
+    public slices: Slice[] = [];
 }
 
-class OpzioniThreshold extends Card{
+class OpzioniThreshold extends Card {
     public lineColor1 = new formattingSettings.ColorPicker({
         name: "lineColor1",
         displayName: "Colore della linea 1",
@@ -172,26 +143,26 @@ class OpzioniThreshold extends Card{
         visible: false
     })
 
-    public getValue(index: number){
-        if(index==1){
+    public getValue(index: number) {
+        if (index == 1) {
             return this.lineValue1.value;
-        }else if(index==2){
+        } else if (index == 2) {
             return this.lineValue2.value;
-        }else if(index==3){
+        } else if (index == 3) {
             return this.lineValue3.value;
-        }else if(index==4){
+        } else if (index == 4) {
             return this.lineValue4.value;
         }
     }
 
-    public getColor(index: number){
-        if(index==1){
+    public getColor(index: number) {
+        if (index == 1) {
             return this.lineColor1.value;
-        }else if(index==2){
+        } else if (index == 2) {
             return this.lineColor2.value;
-        }else if(index==3){
+        } else if (index == 3) {
             return this.lineColor3.value;
-        }else if(index==4){
+        } else if (index == 4) {
             return this.lineColor4.value;
         }
     }
@@ -199,7 +170,7 @@ class OpzioniThreshold extends Card{
     public name: string = "lineOptions"
     public displayName: string = "Opzioni linee threshold";
     public visible: boolean = false;
-    public slices: Slice[] =  [ this.lineColor1, this.lineValue1, this.lineColor2, this.lineValue2, this.lineColor3, this.lineValue3, this.lineColor4, this.lineValue4];
+    public slices: Slice[] = [this.lineColor1, this.lineValue1, this.lineColor2, this.lineValue2, this.lineColor3, this.lineValue3, this.lineColor4, this.lineValue4];
 }
 
 /**
@@ -209,7 +180,7 @@ class OpzioniThreshold extends Card{
 export class VisualSettings extends Model {
 
     public stile: ImpostazioniDiStile = new ImpostazioniDiStile();
-    public thres : OpzioniThreshold = new OpzioniThreshold();
+    public thres: OpzioniThreshold = new OpzioniThreshold();
     public colorSelector: ColorazioneAree = new ColorazioneAree();
     public cards: Card[] = [this.stile, this.thres, this.colorSelector];
 }
