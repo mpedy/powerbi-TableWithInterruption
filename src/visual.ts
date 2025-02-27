@@ -139,7 +139,7 @@ export class Visual implements IVisual {
         this.root.selectAll("*").remove();
         this.container = this.root.append("div").style("width", "100%").style("height", "100%").style("display", "flex").style("flex-direction", "column")
         if (this.visualSettings.stile.showLogo.value == true) {
-            this.svg = this.container.append("svg").style("width", "100%").style("height", this.heightSVG + "px").style("border-bottom", "1px solid black").style("box-sizing", "border-box")
+            this.svg = this.container.append("svg").style("width", "100%").style("height", this.heightSVG + "px").style("border-bottom", "1px solid black").style("box-sizing", "border-box").style("margin-bottom", "10px")
             this.svg
                 .append("image")
                 .attr("xlink:href", "data:image/png;base64," + image)
