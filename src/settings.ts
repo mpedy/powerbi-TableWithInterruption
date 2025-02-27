@@ -63,14 +63,14 @@ class ImpostazioniDiStile extends Card {
         name: "View trend by CdS",
         displayName: "Visualizza i trend per singolo CdS",
         value: false,
-        visible: true
+        visible: false
     });
 
     public logoSize = new formattingSettings.NumUpDown({
         name: "Logo size",
         displayName: "Larghezza del logo",
         value: 300,
-        visible: true
+        visible: false
     });
 
     public name: string = "stile";

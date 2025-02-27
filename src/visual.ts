@@ -116,12 +116,18 @@ export class Visual implements IVisual {
         this.height = this.options.viewport.height - this.margin.top - this.margin.bottom;
     }
 
+    public adjustVisualSettings() {
+        this.visualSettings.stile.showTrendByCdS.visible = this.visualSettings.stile.showTrend.value
+        this.visualSettings.stile.logoSize.visible = this.visualSettings.stile.showLogo.value;
+    }
+
     public update(options: VisualUpdateOptions) {
         Object.prototype["keys"] = function () {
             return Object.keys(this)
         }
         this.options = options
         this.visualSettings = this.formattingSettingsService.populateFormattingSettingsModel(VisualSettings, options.dataViews[0]);
+        this.adjustVisualSettings()
         this.setMarginAndDims();
 
         // Pulisci tutti gli elementi
@@ -214,14 +220,35 @@ export class Visual implements IVisual {
         let synt_tbody = this.synTable.append("tbody")
         let synt_tbody_tr = synt_tbody.append("tr")
         synt_tbody_tr.append("td").text("Totale avvii di carriera degli studenti UniGe in classi di laurea dell'Area Politecnica").attr("class", "synt cell unige")
+        if (this.visualSettings.stile.showTrend.value == true) {
+            this.trends = []
+        }
         for (let k of this.allyears) {
             synt_thead_tr.append("th").text(k).attr("class", "synt cell header years")
             synt_tbody_tr.append("td").text(this.studenti_totali[k]).attr("class", "synt cell value unige")
+            if (this.visualSettings.stile.showTrend.value == true) {
+                this.trends.push(this.studenti_totali[k])
+            }
+        }
+        if (this.visualSettings.stile.showTrend.value == true) {
+            synt_thead_tr.append("th").text("Trend ultimo triennio").attr("class", "synt cell header years").style("width", "79.92px").style("text-align", "center")
+            this.is_unige = true
+            this.getTrend(synt_tbody_tr.append("td"))
+        }
+        if (this.visualSettings.stile.showTrend.value == true) {
+            this.trends = []
         }
         synt_tbody_tr = synt_tbody.append("tr")
         synt_tbody_tr.append("td").text("Di cui avvii di carriera fuori UniGe").attr("class", "synt cell extunige")
         for (let k of this.allyears) {
             synt_tbody_tr.append("td").text(this.studenti_ext_totali[k]).attr("class", "synt cell value extunige")
+            if (this.visualSettings.stile.showTrend.value == true) {
+                this.trends.push(this.studenti_ext_totali[k])
+            }
+        }
+        if (this.visualSettings.stile.showTrend.value == true) {
+            this.is_unige = false
+            this.getTrend(synt_tbody_tr.append("td"))
         }
     }
 
@@ -278,7 +305,7 @@ export class Visual implements IVisual {
                     this.getTrend(htmlElem.append("td"));
                 }
             } else {
-                htmlElem.append("td").attr("class","nothing")
+                htmlElem.append("td").attr("class", "nothing")
             }
             return
         }
@@ -323,7 +350,7 @@ export class Visual implements IVisual {
                 if (this.visualSettings.stile.showTrend.value == true) {
                     this.getTrend(htmlElem.append("td"))
                 } else {
-                    htmlElem.append("td").attr("class","nothing")
+                    htmlElem.append("td").attr("class", "nothing")
                 }
             }
         }
