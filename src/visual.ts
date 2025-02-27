@@ -213,13 +213,13 @@ export class Visual implements IVisual {
         synt_thead_tr.append("th")
         let synt_tbody = this.synTable.append("tbody")
         let synt_tbody_tr = synt_tbody.append("tr")
-        synt_tbody_tr.append("td").text("Totale avvii di carriera degli studenti UniGe").attr("class", "synt cell unige")
+        synt_tbody_tr.append("td").text("Totale avvii di carriera degli studenti UniGe in classi di laurea dell'Area Politecnica").attr("class", "synt cell unige")
         for (let k of this.allyears) {
             synt_thead_tr.append("th").text(k).attr("class", "synt cell header years")
             synt_tbody_tr.append("td").text(this.studenti_totali[k]).attr("class", "synt cell value unige")
         }
         synt_tbody_tr = synt_tbody.append("tr")
-        synt_tbody_tr.append("td").text("Totale studenti UniGe che avviano carriera fuori UniGe").attr("class", "synt cell extunige")
+        synt_tbody_tr.append("td").text("Di cui avvii di carriera fuori UniGe").attr("class", "synt cell extunige")
         for (let k of this.allyears) {
             synt_tbody_tr.append("td").text(this.studenti_ext_totali[k]).attr("class", "synt cell value extunige")
         }
