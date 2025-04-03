@@ -59,6 +59,10 @@
     vertical-align: middle;
     padding: 6px;
 }
+.cell[rowspan][deep="4"]{
+    vertical-align: middle;
+    padding: 6px;
+}
 .syntable{
     margin-bottom: 20px;
 }
